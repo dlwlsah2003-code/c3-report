@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>C3 Report – 차체3부 이슈관리</title>
+
+<!-- PWA: 홈화면 앱처럼 설치 -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#002c5f">
+
+<!-- iOS 홈화면 추가 시 앱처럼 동작 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="C3 Report">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- Android -->
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+  :root {
+    --primary:#002c5f; --primary-light:#003f8a; --secondary:#00aad2;
+    --secondary-light:#e0f7fd; --danger:#e63312; --danger-light:#fde8e5;
+    --warning:#f5a623; --warning-light:#fef6e4; --success:#27ae60;
+    --success-light:#e8f5ee; --bg:#f0f2f5; --surface:#fff;
+    --border:#e0e4ea; --text:#1a1a1a; --text-sub:#555f6e; --text-muted:#9aa3af;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans KR',sans-serif;
+       background:var(--bg);max-width:430px;margin:0 auto;min-height:100vh;}
+  .screen{display:none;flex-direction:column;min-height:100vh;}
+  .screen.active{display:flex;}
+  .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;
+         font-size:12px;font-weight:700;white-space:nowrap;}
+  .btn{border:none;border-radius:12px;padding:14px 20px;font-size:15px;font-weight:700;
+       cursor:pointer;width:100%;transition:opacity .15s;}
+  .btn:active{opacity:.8;}
+  .btn-primary{background:var(--primary);color:#fff;}
+
+  /* 로딩 오버레이 */
+  #loading-overlay{position:fixed;inset:0;background:rgba(0,44,95,.92);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    z-index:999;color:#fff;gap:16px;}
+  #loading-overlay.hidden{display:none;}
+  .spinner{width:40px;height:40px;border:4px solid rgba(255,255,255,.3);
+    border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-text{font-size:14px;color:rgba(255,255,255,.8);}
+
+  /* 탭바 */
+  .tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+    width:100%;max-width:430px;background:#fff;border-top:1px solid var(--border);
+    display:flex;z-index:100;}
+  .tabbar-item{flex:1;display:flex;flex-direction:column;align-items:center;
+    padding:8px 4px 12px;cursor:pointer;gap:3px;position:relative;}
+  .tabbar-item .icon{font-size:22px;}
+  .tabbar-item .label{font-size:10px;font-weight:700;color:var(--text-muted);}
+  .tabbar-item.active .label{color:var(--secondary);}
+  .tab-badge{position:absolute;top:6px;right:calc(50% - 22px);background:var(--danger);
+    color:#fff;border-radius:10px;font-size:9px;font-weight:800;padding:1px 5px;}
+
+  /* 로그인 */
+  #screen-login{background:var(--primary);}
+  .login-header{display:flex;flex-direction:column;align-items:center;padding:48px 24px 32px;gap:14px;}
+  .logo-box{width:72px;height:72px;border-radius:20px;background:var(--secondary);
+    display:flex;align-items:center;justify-content:center;
+    font-size:26px;font-weight:900;color:#fff;letter-spacing:1px;
+    box-shadow:0 4px 20px rgba(0,170,210,.4);}
+  .login-title{color:#fff;font-size:22px;font-weight:800;}
+  .login-sub{color:rgba(255,255,255,.6);font-size:13px;}
+  .login-card{flex:1;background:#fff;border-radius:28px 28px 0 0;padding:28px 24px 24px;overflow-y:auto;}
+  .login-card-title{font-size:17px;font-weight:800;color:var(--text);margin-bottom:4px;}
+  .login-card-desc{font-size:13px;color:var(--text-muted);margin-bottom:18px;}
+  .dept-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none;margin-bottom:6px;}
+  .dept-tabs::-webkit-scrollbar{display:none;}
+  .dept-tab{padding:7px 16px;border-radius:20px;background:var(--bg);border:1.5px solid transparent;
+    font-size:13px;font-weight:600;color:var(--text-sub);cursor:pointer;white-space:nowrap;}
+  .dept-tab.active{background:var(--primary);color:#fff;}
+  .user-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;max-height:360px;overflow-y:auto;}
+  .user-item{display:flex;align-items:center;gap:12px;padding:13px;border-radius:12px;
+    background:var(--bg);border:1.5px solid transparent;cursor:pointer;transition:all .15s;}
+  .user-item.selected{background:var(--secondary-light);border-color:var(--secondary);}
+  .avatar{width:42px;height:42px;border-radius:50%;background:var(--primary);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;
+    font-weight:700;flex-shrink:0;}
+  .avatar.sel{background:var(--secondary);}
+  .user-name{font-size:15px;font-weight:700;color:var(--text);}
+  .user-meta{font-size:12px;color:var(--text-muted);margin-top:2px;}
+  .admin-badge{background:var(--primary);color:#fff;font-size:10px;font-weight:700;
+    padding:2px 7px;border-radius:6px;margin-left:auto;}
+  .check-mark{color:var(--secondary);font-size:18px;font-weight:900;margin-left:auto;}
+
+  /* 홈 */
+  #screen-home{padding-bottom:70px;}
+  .appbar{background:var(--primary);padding:14px 20px 20px;}
+  .appbar-top{display:flex;justify-content:space-between;align-items:center;}
+  .appbar-sub{color:rgba(255,255,255,.6);font-size:12px;font-weight:600;letter-spacing:1px;}
+  .appbar-title{color:#fff;font-size:20px;font-weight:800;}
+  .user-bubble{width:38px;height:38px;border-radius:50%;background:var(--secondary);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;font-weight:700;}
+  .user-bubble-name{color:rgba(255,255,255,.8);font-size:11px;text-align:center;margin-top:3px;}
+  .stats-row{display:flex;gap:10px;padding:12px 0 0;}
+  .stat-card{flex:1;border-radius:12px;padding:14px;text-align:center;cursor:pointer;}
+  .stat-value{font-size:26px;font-weight:900;line-height:1.1;}
+  .stat-label{font-size:12px;font-weight:600;margin-top:3px;}
+  .stat-접수{background:var(--danger-light);}
+  .stat-접수 .stat-value,.stat-접수 .stat-label{color:var(--danger);}
+  .stat-조치중{background:var(--warning-light);}
+  .stat-조치중 .stat-value,.stat-조치중 .stat-label{color:var(--warning);}
+  .stat-완료{background:var(--success-light);}
+  .stat-완료 .stat-value,.stat-완료 .stat-label{color:var(--success);}
+  .search-box{display:flex;align-items:center;background:#fff;margin:14px 16px 0;
+    border-radius:12px;padding:11px 14px;gap:8px;box-shadow:0 1px 6px rgba(0,0,0,.06);}
+  .search-box input{flex:1;border:none;outline:none;font-size:14px;color:var(--text);background:transparent;}
+  .search-box input::placeholder{color:var(--text-muted);}
+  .filter-row{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;
+    scrollbar-width:none;align-items:center;}
+  .filter-row::-webkit-scrollbar{display:none;}
+  .filter-chip{padding:7px 14px;border-radius:20px;background:#fff;border:1.5px solid var(--border);
+    font-size:12px;font-weight:600;color:var(--text-sub);cursor:pointer;white-space:nowrap;}
+  .filter-chip.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .filter-chip.s-접수.active{background:var(--danger);border-color:var(--danger);}
+  .filter-chip.s-조치중.active{background:var(--warning);border-color:var(--warning);}
+  .filter-chip.s-완료.active{background:var(--success);border-color:var(--success);}
+  .divider-chip{width:1px;height:24px;background:var(--border);flex-shrink:0;}
+  .result-count{font-size:12px;color:var(--text-muted);font-weight:600;padding:0 20px 4px;}
+  .issue-list{padding:0 16px;display:flex;flex-direction:column;gap:10px;}
+  .issue-card{background:#fff;border-radius:14px;padding:16px;
+    box-shadow:0 2px 10px rgba(0,0,0,.07);cursor:pointer;
+    transition:transform .1s;border-left:4px solid transparent;}
+  .issue-card:active{transform:scale(.99);}
+  .issue-card.urgent{border-left-color:var(--danger);}
+  .card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .card-tags{display:flex;gap:6px;align-items:center;}
+  .car-badge{background:var(--primary);color:#fff;font-size:11px;font-weight:700;
+    padding:2px 8px;border-radius:6px;letter-spacing:.5px;}
+  .urgent-badge{background:var(--danger-light);color:var(--danger);
+    font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;}
+  .card-title{font-size:15px;font-weight:700;color:var(--text);line-height:1.4;margin-bottom:10px;}
+  .card-meta{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .cat-badge{padding:3px 8px;border-radius:6px;font-size:12px;font-weight:600;}
+  .car-number{font-size:12px;color:var(--text-muted);font-family:monospace;}
+  .card-bottom{display:flex;justify-content:space-between;align-items:center;}
+  .assignee-row{display:flex;align-items:center;gap:5px;}
+  .mini-avatar{width:22px;height:22px;border-radius:50%;background:var(--secondary);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
+  .assignee-name{font-size:12px;color:var(--text-sub);font-weight:600;}
+  .dot{color:var(--text-muted);}
+  .dept-name{font-size:12px;color:var(--text-muted);}
+  .time-text{font-size:12px;color:var(--text-muted);}
+  .comment-row{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);
+    font-size:12px;color:var(--secondary);font-weight:600;}
+  .badge-접수{background:var(--danger-light);color:var(--danger);}
+  .badge-조치중{background:var(--warning-light);color:var(--warning);}
+  .badge-완료{background:var(--success-light);color:var(--success);}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
+  .empty-state .icon{font-size:48px;margin-bottom:12px;}
+
+  /* 상세 */
+  #screen-detail{background:var(--bg);padding-bottom:80px;}
+  .detail-header{background:var(--primary);display:flex;align-items:center;
+    justify-content:space-between;padding:14px 16px;}
+  .back-btn{width:40px;height:40px;display:flex;align-items:center;
+    justify-content:center;cursor:pointer;font-size:22px;color:#fff;font-weight:700;}
+  .detail-header-title{color:#fff;font-size:16px;font-weight:700;flex:1;text-align:center;}
+  .detail-scroll{overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
+  .status-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .detail-title{font-size:20px;font-weight:800;color:var(--text);line-height:1.4;}
+  .meta-table{background:#fff;border-radius:14px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,.05);}
+  .meta-row{display:flex;justify-content:space-between;align-items:center;
+    padding:10px 0;border-bottom:1px solid var(--border);}
+  .meta-row:last-child{border-bottom:none;}
+  .meta-label{font-size:13px;color:var(--text-sub);font-weight:600;}
+  .meta-value{font-size:13px;color:var(--text);font-weight:600;text-align:right;max-width:60%;}
+  .desc-box,.comment-box{background:#fff;border-radius:14px;padding:16px;
+    box-shadow:0 1px 6px rgba(0,0,0,.05);}
+  .section-title{font-size:14px;font-weight:800;color:var(--text);margin-bottom:12px;}
+  .desc-text{font-size:14px;color:var(--text-sub);line-height:1.6;white-space:pre-wrap;}
+  .comment-item{margin-bottom:4px;}
+  .comment-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .comment-avatar{width:34px;height:34px;border-radius:50%;background:var(--secondary);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;flex-shrink:0;}
+  .comment-author{font-size:13px;font-weight:700;color:var(--text);}
+  .comment-time{font-size:11px;color:var(--text-muted);}
+  .comment-text{font-size:14px;color:var(--text-sub);line-height:1.5;margin-left:44px;white-space:pre-wrap;}
+  .comment-divider{height:1px;background:var(--border);margin:12px 0;}
+  .status-action-btn{border:none;border-radius:14px;padding:16px;font-size:16px;
+    font-weight:700;color:#fff;cursor:pointer;width:100%;transition:opacity .15s;}
+  .status-action-btn:active{opacity:.85;}
+  .completed-banner{background:var(--success-light);border-radius:14px;padding:16px;
+    text-align:center;font-size:15px;font-weight:700;color:var(--success);}
+  .comment-input-area{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+    width:100%;max-width:430px;background:#fff;border-top:1px solid var(--border);
+    padding:12px;display:flex;gap:10px;align-items:flex-end;z-index:50;}
+  .comment-input{flex:1;background:var(--bg);border:none;border-radius:12px;
+    padding:10px 14px;font-size:14px;color:var(--text);font-family:inherit;
+    resize:none;outline:none;min-height:42px;max-height:90px;}
+  .send-btn{background:var(--primary);border:none;border-radius:10px;padding:10px 16px;
+    color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;}
+  .send-btn:disabled{background:var(--border);cursor:default;}
+
+  /* 등록 */
+  #screen-new{background:var(--bg);padding-bottom:80px;overflow-y:auto;}
+  .new-header{background:var(--primary);padding:14px 16px;display:flex;align-items:center;justify-content:center;}
+  .new-header-title{color:#fff;font-size:16px;font-weight:700;}
+  .form-card{background:#fff;margin:16px;border-radius:16px;padding:20px;
+    box-shadow:0 2px 10px rgba(0,0,0,.07);}
+  .form-label{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;gap:2px;}
+  .required{color:var(--danger);}
+  .form-input{width:100%;background:var(--bg);border:1.5px solid transparent;
+    border-radius:10px;padding:12px 14px;font-size:14px;color:var(--text);
+    font-family:inherit;outline:none;margin-bottom:18px;}
+  .form-input:focus{border-color:var(--secondary);}
+  .form-textarea{height:110px;resize:none;}
+  .chip-group{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;}
+  .chip{padding:7px 13px;border-radius:20px;background:var(--bg);border:1.5px solid var(--border);
+    font-size:13px;font-weight:600;color:var(--text-sub);cursor:pointer;white-space:nowrap;transition:all .15s;}
+  .chip.active{color:#fff;}
+  .car-chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;
+    scrollbar-width:none;margin-bottom:18px;}
+  .car-chips::-webkit-scrollbar{display:none;}
+  .car-chip{padding:7px 14px;border-radius:10px;background:var(--bg);border:1.5px solid var(--border);
+    font-size:13px;font-weight:700;color:var(--text-sub);cursor:pointer;white-space:nowrap;}
+  .car-chip.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .assignee-btn{width:100%;background:var(--bg);border:1.5px dashed var(--border);
+    border-radius:10px;padding:14px;font-size:14px;font-weight:600;color:var(--text-muted);
+    cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+  .assignee-btn.selected{border-color:var(--secondary);color:var(--text);border-style:solid;}
+  .submit-btn{background:var(--primary);border:none;border-radius:14px;padding:18px;
+    font-size:16px;font-weight:800;color:#fff;cursor:pointer;
+    width:calc(100% - 32px);margin:0 16px 16px;box-shadow:0 4px 16px rgba(0,44,95,.3);}
+  .submit-btn:active{opacity:.85;}
+
+  /* 관리 */
+  #screen-admin{background:var(--bg);padding-bottom:80px;overflow-y:auto;}
+  .admin-header{background:var(--primary);display:flex;justify-content:space-between;
+    align-items:center;padding:14px 20px 20px;}
+  .admin-header-info .sub{color:rgba(255,255,255,.6);font-size:12px;font-weight:600;}
+  .admin-header-info .title{color:#fff;font-size:20px;font-weight:800;}
+  .logout-btn{border:1.5px solid rgba(255,255,255,.4);border-radius:8px;padding:6px 12px;
+    color:rgba(255,255,255,.8);font-size:13px;font-weight:600;background:transparent;cursor:pointer;}
+  .profile-card{display:flex;align-items:center;gap:14px;background:#fff;margin:16px;
+    border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.07);}
+  .profile-avatar{width:52px;height:52px;border-radius:50%;background:var(--secondary);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:700;flex-shrink:0;}
+  .profile-name{font-size:17px;font-weight:800;color:var(--text);}
+  .profile-dept{font-size:13px;color:var(--text-muted);margin-top:3px;}
+  .admin-crown{margin-left:auto;background:#fef3c7;padding:4px 10px;border-radius:8px;
+    font-size:12px;font-weight:700;color:#92400e;}
+  .dept-cards{display:flex;gap:10px;padding:0 16px;margin-bottom:8px;}
+  .dept-stat{flex:1;background:#fff;border-radius:12px;padding:14px;text-align:center;
+    box-shadow:0 1px 6px rgba(0,0,0,.05);}
+  .dept-stat-name{font-size:10px;color:var(--text-muted);font-weight:600;margin-bottom:4px;}
+  .dept-stat-count{font-size:22px;font-weight:900;color:var(--primary);}
+  .dept-stat-open{font-size:10px;color:var(--danger);font-weight:700;background:var(--danger-light);
+    padding:2px 6px;border-radius:6px;margin-top:4px;display:inline-block;}
+  .section-block{background:#fff;margin:12px 16px 0;border-radius:14px;padding:16px;
+    box-shadow:0 1px 6px rgba(0,0,0,.05);}
+  .section-block-header{display:flex;justify-content:space-between;margin-bottom:12px;}
+  .section-block-title{font-size:14px;font-weight:800;color:var(--text);}
+  .section-block-count{font-size:14px;color:var(--text-muted);font-weight:600;}
+  .member-item{display:flex;align-items:center;padding:10px 0;border-top:1px solid var(--border);gap:12px;}
+  .member-avatar{width:38px;height:38px;border-radius:50%;background:var(--primary);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:700;flex-shrink:0;}
+  .member-avatar.me{background:var(--secondary);}
+  .member-name-row{display:flex;align-items:center;gap:6px;}
+  .member-name{font-size:14px;font-weight:700;color:var(--text);}
+  .me-badge{background:var(--secondary-light);color:var(--secondary);font-size:10px;
+    font-weight:700;padding:1px 6px;border-radius:4px;}
+  .member-issues{font-size:11px;color:var(--warning);font-weight:600;margin-top:2px;}
+  .del-btn{margin-left:auto;border:1.5px solid var(--danger);border-radius:7px;
+    padding:4px 10px;color:var(--danger);font-size:12px;font-weight:700;
+    background:transparent;cursor:pointer;}
+  .add-btn{margin:16px;background:var(--primary);border:none;border-radius:12px;
+    padding:16px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;
+    width:calc(100% - 32px);}
+
+  /* 모달 */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+    z-index:200;justify-content:flex-end;flex-direction:column;align-items:center;}
+  .modal-overlay.open{display:flex;}
+  .modal-card{background:#fff;border-radius:24px 24px 0 0;padding:24px 24px 40px;
+    width:100%;max-width:430px;}
+  .modal-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:20px;}
+  .modal-label{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;}
+  .modal-input{width:100%;background:var(--bg);border:1.5px solid var(--border);
+    border-radius:10px;padding:12px 14px;font-size:15px;font-family:inherit;outline:none;margin-bottom:18px;}
+  .modal-btn-row{display:flex;gap:10px;margin-top:8px;}
+  .modal-cancel{flex:1;background:var(--bg);border:none;border-radius:12px;padding:14px;
+    font-size:15px;font-weight:700;color:var(--text-sub);cursor:pointer;}
+  .modal-confirm{flex:1;background:var(--primary);border:none;border-radius:12px;padding:14px;
+    font-size:15px;font-weight:700;color:#fff;cursor:pointer;}
+
+  /* 알림 토스트 */
+  #toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    background:#1a1a1a;color:#fff;padding:12px 20px;border-radius:12px;
+    font-size:13px;font-weight:600;z-index:999;opacity:0;
+    transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+  #toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- 로딩 -->
+<div id="loading-overlay">
+  <div class="logo-box" style="width:64px;height:64px;border-radius:18px;background:var(--secondary);
+    display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;
+    box-shadow:0 4px 20px rgba(0,170,210,.4)">C3</div>
+  <div class="spinner" id="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">Firebase 연결 중...</div>
+  <button id="retry-btn" onclick="window.location.reload()"
+    style="display:none;margin-top:8px;background:var(--secondary);border:none;border-radius:10px;
+    padding:12px 24px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">
+    🔄 다시 시도
+  </button>
+  <div id="error-detail" style="display:none;font-size:11px;color:rgba(255,255,255,.5);
+    margin-top:8px;max-width:320px;text-align:center;word-break:break-all;"></div>
+</div>
+
+<!-- 토스트 -->
+<div id="toast"></div>
+
+<!-- ── 로그인 ── -->
+<div id="screen-login" class="screen">
+  <div class="login-header">
+    <div class="logo-box">C3</div>
+    <div class="login-title">차체3부 이슈관리</div>
+    <div class="login-sub">C3 Report &nbsp;•&nbsp; Firebase 연동</div>
+  </div>
+  <div class="login-card">
+    <div class="login-card-title">👤 부서원 선택</div>
+    <div class="login-card-desc">본인 이름을 선택해 시작하세요</div>
+    <div class="dept-tabs" id="dept-tabs"></div>
+    <div class="user-list" id="user-list"></div>
+    <button class="btn btn-primary" id="login-btn" disabled onclick="doLogin()">이름을 선택하세요</button>
+  </div>
+</div>
+
+<!-- ── 홈 ── -->
+<div id="screen-home" class="screen">
+  <div class="appbar">
+    <div class="appbar-top">
+      <div><div class="appbar-sub">차체3부</div><div class="appbar-title">이슈관리 시스템</div></div>
+      <div style="text-align:center">
+        <div class="user-bubble" id="home-avatar"></div>
+        <div class="user-bubble-name" id="home-name"></div>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card stat-접수" onclick="filterStatus('접수')">
+        <div class="stat-value" id="stat-접수">-</div><div class="stat-label">접수</div>
+      </div>
+      <div class="stat-card stat-조치중" onclick="filterStatus('조치중')">
+        <div class="stat-value" id="stat-조치중">-</div><div class="stat-label">조치중</div>
+      </div>
+      <div class="stat-card stat-완료" onclick="filterStatus('완료')">
+        <div class="stat-value" id="stat-완료">-</div><div class="stat-label">완료</div>
+      </div>
+    </div>
+  </div>
+  <div class="search-box">
+    <span>🔍</span>
+    <input type="text" placeholder="차종, 제목, 차체번호 검색..." id="search-input" oninput="renderIssues()">
+  </div>
+  <div class="filter-row" id="filter-row"></div>
+  <div class="result-count" id="result-count"></div>
+  <div class="issue-list" id="issue-list"></div>
+</div>
+
+<!-- ── 이슈 상세 ── -->
+<div id="screen-detail" class="screen">
+  <div class="detail-header">
+    <div class="back-btn" onclick="goBack()">←</div>
+    <div class="detail-header-title">이슈 상세</div>
+    <div style="width:40px"></div>
+  </div>
+  <div class="detail-scroll" id="detail-content" style="flex:1;overflow-y:auto;"></div>
+  <div class="comment-input-area">
+    <textarea class="comment-input" id="comment-input"
+      placeholder="조치 내용을 입력하세요..." rows="1" oninput="autoResize(this)"></textarea>
+    <button class="send-btn" onclick="submitComment()">등록</button>
+  </div>
+</div>
+
+<!-- ── 등록 ── -->
+<div id="screen-new" class="screen">
+  <div class="new-header"><div class="new-header-title">이슈 등록</div></div>
+  <div style="padding-bottom:16px">
+    <div class="form-card">
+      <div class="form-label"><span>제목</span><span class="required">*</span></div>
+      <input type="text" class="form-input" id="new-title" placeholder="이슈 제목을 간략히 입력하세요">
+      <div class="form-label">카테고리 <span class="required">*</span></div>
+      <div class="chip-group" id="cat-chips"></div>
+      <div class="form-label">우선순위</div>
+      <div class="chip-group" id="pri-chips"></div>
+      <div class="form-label">차종</div>
+      <div class="car-chips" id="car-chips"></div>
+      <div class="form-label">차체번호</div>
+      <input type="text" class="form-input" id="new-carnumber"
+        placeholder="예) CN 1845~, ASW 256267, EXF 322227">
+      <div class="form-label">담당자 <span class="required">*</span></div>
+      <div class="assignee-btn" id="assignee-btn" onclick="openAssigneePicker()">👤 담당자 선택 →</div>
+      <div class="form-label">현상 설명 <span class="required">*</span></div>
+      <textarea class="form-input form-textarea" id="new-desc"
+        placeholder="발생 현상, 조건, 관련 번호 등을 입력하세요"></textarea>
+    </div>
+    <button class="submit-btn" onclick="submitNewIssue()">🚀 이슈 등록하기</button>
+    <div style="height:16px"></div>
+  </div>
+</div>
+
+<!-- ── 관리 ── -->
+<div id="screen-admin" class="screen">
+  <div class="admin-header">
+    <div class="admin-header-info">
+      <div class="sub">차체3부</div><div class="title">부서원 관리</div>
+    </div>
+    <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+  </div>
+  <div id="admin-content"></div>
+</div>
+
+<!-- 탭바 -->
+<div class="tabbar" id="tabbar" style="display:none">
+  <div class="tabbar-item" id="tab-home" onclick="switchTab('home')">
+    <span class="icon">🏠</span><span class="label">홈</span>
+    <span class="tab-badge" id="urgent-badge" style="display:none"></span>
+  </div>
+  <div class="tabbar-item" id="tab-new" onclick="switchTab('new')">
+    <span class="icon">➕</span><span class="label">등록</span>
+  </div>
+  <div class="tabbar-item" id="tab-admin" onclick="switchTab('admin')">
+    <span class="icon">👥</span><span class="label">관리</span>
+  </div>
+</div>
+
+<!-- 담당자 선택 모달 -->
+<div class="modal-overlay" id="assignee-modal">
+  <div class="modal-card">
+    <div class="modal-title">담당자 선택</div>
+    <div class="dept-tabs" id="modal-dept-tabs" style="margin-bottom:12px"></div>
+    <div id="modal-user-list" style="max-height:320px;overflow-y:auto"></div>
+    <div class="modal-btn-row">
+      <button class="modal-cancel" onclick="closeAssigneePicker()">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- 부서원 추가 모달 -->
+<div class="modal-overlay" id="add-user-modal">
+  <div class="modal-card">
+    <div class="modal-title">부서원 추가</div>
+    <div class="modal-label">이름</div>
+    <input type="text" class="modal-input" id="new-user-name" placeholder="홍길동">
+    <div class="modal-label">부서</div>
+    <div class="chip-group" id="new-user-dept-chips"></div>
+    <div class="modal-label">직함</div>
+    <div class="chip-group" id="new-user-title-chips"></div>
+    <div class="modal-btn-row">
+      <button class="modal-cancel" onclick="closeAddUser()">취소</button>
+      <button class="modal-confirm" onclick="submitAddUser()">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ Firebase + 앱 로직 ══════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc,
+  getDocs, onSnapshot, query, orderBy, serverTimestamp, getDoc
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+// ── Firebase 초기화 ──
+const firebaseConfig = {
+  apiKey: "AIzaSyCbjxbaJrzCuWQ-YXlUKqozIv8jKarELQ8",
+  authDomain: "chache3-manager.firebaseapp.com",
+  projectId: "chache3-manager",
+  storageBucket: "chache3-manager.firebasestorage.app",
+  messagingSenderId: "532177102749",
+  appId: "1:532177102749:web:7ce403c7000b5d2408f174",
+  measurementId: "G-6NDD3XW9GC"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ── 초기 부서원 데이터 ──
+const SEED_USERS = [
+  { name:'이진모', dept:'생산1과', title:'매니저', role:'관리자' },
+  { name:'정희주', dept:'생산1과', title:'책임',   role:'사용자' },
+  { name:'송미선', dept:'생산1과', title:'책임',   role:'사용자' },
+  { name:'명대환', dept:'생산1과', title:'매니저', role:'사용자' },
+  { name:'정세정', dept:'생산2과', title:'책임',   role:'사용자' },
+  { name:'최승혁', dept:'생산2과', title:'책임',   role:'사용자' },
+  { name:'김용규', dept:'생산2과', title:'매니저', role:'사용자' },
+  { name:'권석일', dept:'공정기술과', title:'CM',     role:'사용자' },
+  { name:'권영재', dept:'공정기술과', title:'책임',   role:'사용자' },
+  { name:'안제만', dept:'공정기술과', title:'매니저', role:'사용자' },
+  { name:'고현우', dept:'공정기술과', title:'매니저', role:'사용자' },
+  { name:'김병오', dept:'공정기술과', title:'매니저', role:'사용자' },
+];
+
+// ── 앱 상태 ──
+let USERS = [];
+let ISSUES = [];
+let currentUser = null;
+let selectedLoginUser = null;
+let currentDeptFilter = '전체';
+let activeTabFilter = '전체';
+let activeStatusFilter = '전체';
+let currentDetailId = null;
+let newIssueCat = '품질불량';
+let newIssuePri = '일반';
+let newIssueCar = '';
+let newAssigneeId = '';
+let modalDeptFilter = '전체';
+let addUserDept = '생산1과';
+let addUserTitle = '책임';
+let unsubIssues = null;
+let prevTab = 'home';
+
+const CAT_CONFIG = {
+  '품질불량':{ icon:'⚠️', color:'#8b5cf6' },
+  '설비이슈':{ icon:'🔧', color:'#f59e0b' },
+  '시설공사':{ icon:'🏗️', color:'#06b6d4' },
+  '물류':    { icon:'📦', color:'#10b981' },
+  '기타':    { icon:'📌', color:'#6b7280' },
+};
+const CAR_MODELS = ['DL3','GL3','CV','K5','K8','기타','해당없음'];
+const PRIORITIES = ['긴급','일반','낮음'];
+const DEPTS = ['전체','생산1과','생산2과','공정기술과'];
+const TITLES = ['매니저','CM','책임','선임','주임'];
+const STATUS_ORDER = ['접수','조치중','완료'];
+
+// ── 유틸 ──
+const $  = id => document.getElementById(id);
+const gu = id => USERS.find(u => u.id === id);
+const gi = id => ISSUES.find(i => i.id === id);
+function showLoading(txt='로딩 중...') { $('loading-overlay').classList.remove('hidden'); $('loading-text').textContent=txt; }
+function hideLoading() { $('loading-overlay').classList.add('hidden'); }
+function toast(msg) {
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+function timeAgo(val) {
+  if(!val) return '';
+  const d = val?.toDate ? val.toDate() : new Date(val);
+  const diff = Math.floor((Date.now()-d)/1000);
+  if(diff<60) return '방금 전';
+  if(diff<3600) return `${Math.floor(diff/60)}분 전`;
+  if(diff<86400) return `${Math.floor(diff/3600)}시간 전`;
+  return `${Math.floor(diff/86400)}일 전`;
+}
+function fmtDate(val) {
+  if(!val) return '';
+  const d = val?.toDate ? val.toDate() : new Date(val);
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function statusBadge(s) {
+  const icons={접수:'🔴',조치중:'🟡',완료:'🟢'};
+  return `<span class="badge badge-${s}">${icons[s]||''} ${s}</span>`;
+}
+
+// ── Firebase: 유저 로드 ──
+
+async function loadUsers() {
+  const snap = await getDocs(collection(db,'users'));
+  USERS = snap.docs.map(d=>({id:d.id,...d.data()}));
+  USERS.sort((a,b)=>{
+    const dOrder=['생산1과','생산2과','공정기술과'];
+    return dOrder.indexOf(a.dept)-dOrder.indexOf(b.dept)||a.name.localeCompare(b.name);
+  });
+}
+
+// ── Firebase: 이슈 실시간 리스너 ──
+function startIssuesListener() {
+  if(unsubIssues) unsubIssues();
+  const q = query(collection(db,'issues'), orderBy('createdAt','desc'));
+  unsubIssues = onSnapshot(q, snap => {
+    ISSUES = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderIssues();
+    if(currentDetailId) renderDetail();
+    renderAdmin();
+  }, err => {
+    console.error(err);
+    toast('⚠️ 실시간 업데이트 오류');
+  });
+}
+function stopIssuesListener() { if(unsubIssues){unsubIssues();unsubIssues=null;} }
+
+// ── 화면 전환 ──
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(`screen-${name}`).classList.add('active');
+}
+
+// ── 로그인 ──
+function renderLoginUsers() {
+  $('dept-tabs').innerHTML = DEPTS.map(d=>
+    `<div class="dept-tab ${currentDeptFilter===d?'active':''}" onclick="window.setDeptFilter('${d}')">${d}</div>`
+  ).join('');
+  const filtered = currentDeptFilter==='전체' ? USERS : USERS.filter(u=>u.dept===currentDeptFilter);
+  $('user-list').innerHTML = filtered.map(u=>`
+    <div class="user-item ${selectedLoginUser?.id===u.id?'selected':''}" onclick="window.selectUser('${u.id}')">
+      <div class="avatar ${selectedLoginUser?.id===u.id?'sel':''}">${u.name[0]}</div>
+      <div><div class="user-name">${u.name}</div><div class="user-meta">${u.dept} &nbsp;•&nbsp; ${u.title}</div></div>
+      ${u.role==='관리자'?'<div class="admin-badge">관리자</div>':''}
+      ${selectedLoginUser?.id===u.id?'<div class="check-mark">✓</div>':''}
+    </div>`).join('');
+}
+
+window.setDeptFilter = d => { currentDeptFilter=d; renderLoginUsers(); };
+window.selectUser = id => {
+  selectedLoginUser = USERS.find(u=>u.id===id);
+  const btn=$('login-btn');
+  btn.disabled=false;
+  btn.textContent=`${selectedLoginUser.name}(으)로 시작하기`;
+  renderLoginUsers();
+};
+window.doLogin = () => {
+  if(!selectedLoginUser) return;
+  currentUser = selectedLoginUser;
+  localStorage.setItem('c3_userId', currentUser.id);
+  $('tabbar').style.display='flex';
+  switchTab('home');
+};
+window.doLogout = () => {
+  if(!confirm('로그아웃 하시겠습니까?')) return;
+  stopIssuesListener();
+  currentUser=null; selectedLoginUser=null;
+  localStorage.removeItem('c3_userId');
+  $('tabbar').style.display='none';
+  $('login-btn').disabled=true;
+  $('login-btn').textContent='이름을 선택하세요';
+  showScreen('login');
+  renderLoginUsers();
+};
+
+// ── 탭 ──
+window.switchTab = tab => {
+  showScreen(tab);
+  document.querySelectorAll('.tabbar-item').forEach(t=>t.classList.remove('active'));
+  $(`tab-${tab}`).classList.add('active');
+  if(tab==='home') { renderHome(); startIssuesListener(); }
+  if(tab==='new')  renderNewForm();
+  if(tab==='admin') renderAdmin();
+  prevTab = tab;
+};
+
+// ── 홈 ──
+function renderHome() {
+  $('home-avatar').textContent = currentUser.name[0];
+  $('home-name').textContent = currentUser.name;
+  renderFilterRow();
+  renderIssues();
+}
+
+function renderFilterRow() {
+  const TAB_FILTERS=['전체','내 담당','미완료'];
+  const STATUS_FILTERS=['전체','접수','조치중','완료'];
+  $('filter-row').innerHTML =
+    TAB_FILTERS.map(t=>
+      `<div class="filter-chip ${activeTabFilter===t?'active':''}" onclick="window.setTabFilter('${t}')">${t}</div>`
+    ).join('') +
+    '<div class="divider-chip"></div>' +
+    STATUS_FILTERS.map(s=>
+      `<div class="filter-chip s-${s} ${activeStatusFilter===s?'active':''}" onclick="window.setStatusFilter('${s}')">${s!=='전체'?{접수:'🔴',조치중:'🟡',완료:'🟢'}[s]+' ':''} ${s}</div>`
+    ).join('');
+}
+
+window.setTabFilter = t => { activeTabFilter=t; renderFilterRow(); renderIssues(); };
+window.setStatusFilter = s => { activeStatusFilter=s; renderFilterRow(); renderIssues(); };
+window.filterStatus = s => { activeStatusFilter=s; renderFilterRow(); renderIssues(); switchTab('home'); };
+
+function renderIssues() {
+  if(!currentUser) return;
+  const q = ($('search-input')||{}).value?.toLowerCase()||'';
+  let list=[...ISSUES];
+  if(activeTabFilter==='내 담당') list=list.filter(i=>i.assignedTo===currentUser.id);
+  if(activeTabFilter==='미완료') list=list.filter(i=>i.status!=='완료');
+  if(activeStatusFilter!=='전체') list=list.filter(i=>i.status===activeStatusFilter);
+  if(q) list=list.filter(i=>i.title?.toLowerCase().includes(q)||i.carModel?.toLowerCase().includes(q)||i.carNumber?.toLowerCase().includes(q));
+  list.sort((a,b)=>{
+    const pa=a.priority==='긴급'&&a.status!=='완료'?0:1;
+    const pb=b.priority==='긴급'&&b.status!=='완료'?0:1;
+    if(pa!==pb) return pa-pb;
+    const da=a.createdAt?.toDate?a.createdAt.toDate():new Date(a.createdAt||0);
+    const db2=b.createdAt?.toDate?b.createdAt.toDate():new Date(b.createdAt||0);
+    return db2-da;
+  });
+  // 통계
+  $('stat-접수').textContent=ISSUES.filter(i=>i.status==='접수').length;
+  $('stat-조치중').textContent=ISSUES.filter(i=>i.status==='조치중').length;
+  $('stat-완료').textContent=ISSUES.filter(i=>i.status==='완료').length;
+  // 긴급 배지
+  const urgN=ISSUES.filter(i=>i.priority==='긴급'&&i.status!=='완료').length;
+  const ub=$('urgent-badge');
+  if(urgN>0){ub.style.display='flex';ub.textContent=urgN;}else{ub.style.display='none';}
+  $('result-count').textContent=`총 ${list.length}건`;
+  $('issue-list').innerHTML = list.length===0
+    ? '<div class="empty-state"><div class="icon">📭</div><div>이슈가 없습니다</div></div>'
+    : list.map(i=>renderIssueCard(i)).join('');
+}
+
+function renderIssueCard(i) {
+  const a=gu(i.assignedTo)||{name:'?',title:'',dept:''};
+  const cat=CAT_CONFIG[i.category]||CAT_CONFIG['기타'];
+  const isUrgent=i.priority==='긴급'&&i.status!=='완료';
+  const comments=i.comments||[];
+  return `
+  <div class="issue-card ${isUrgent?'urgent':''}" onclick="window.openDetail('${i.id}')">
+    <div class="card-top">
+      <div class="card-tags">
+        ${i.carModel&&i.carModel!=='-'?`<span class="car-badge">${i.carModel}</span>`:''}
+        ${isUrgent?'<span class="urgent-badge">🚨 긴급</span>':''}
+      </div>
+      ${statusBadge(i.status)}
+    </div>
+    <div class="card-title">${i.title||''}</div>
+    <div class="card-meta">
+      <span class="cat-badge" style="background:${cat.color}18;color:${cat.color}">${cat.icon} ${i.category}</span>
+      ${i.carNumber&&i.carNumber!=='-'?`<span class="car-number">${i.carNumber}</span>`:''}
+    </div>
+    <div class="card-bottom">
+      <div class="assignee-row">
+        <div class="mini-avatar">${a.name[0]}</div>
+        <span class="assignee-name">${a.name} ${a.title}</span>
+        <span class="dot">·</span>
+        <span class="dept-name">${a.dept}</span>
+      </div>
+      <span class="time-text">${timeAgo(i.createdAt)}</span>
+    </div>
+    ${comments.length>0?`<div class="comment-row">💬 조치 ${comments.length}건</div>`:''}
+  </div>`;
+}
+
+// ── 이슈 상세 ──
+window.openDetail = id => {
+  currentDetailId=id;
+  renderDetail();
+  showScreen('detail');
+  document.querySelectorAll('.tabbar-item').forEach(t=>t.classList.remove('active'));
+};
+window.goBack = () => switchTab(prevTab||'home');
+
+function renderDetail() {
+  const i=gi(currentDetailId);
+  if(!i) return;
+  const a=gu(i.assignedTo)||{name:'?',title:'',dept:''};
+  const c=gu(i.createdBy)||{name:'?',title:''};
+  const cat=CAT_CONFIG[i.category]||CAT_CONFIG['기타'];
+  const isUrgent=i.priority==='긴급';
+  const canAdvance=i.status!=='완료';
+  const nextStatus=STATUS_ORDER[STATUS_ORDER.indexOf(i.status)+1];
+  const btnLabel=i.status==='접수'?'🟡 조치 시작':'🟢 조치 완료';
+  const btnColor=i.status==='접수'?'var(--warning)':'var(--success)';
+  const comments=i.comments||[];
+
+  $('detail-content').innerHTML=`
+    <div class="status-row">
+      ${statusBadge(i.status)}
+      ${isUrgent?'<span class="badge" style="background:var(--danger-light);color:var(--danger)">🚨 긴급</span>':''}
+      ${i.carModel&&i.carModel!=='-'?`<span class="badge" style="background:var(--primary);color:#fff">${i.carModel}</span>`:''}
+    </div>
+    <div class="detail-title">${i.title||''}</div>
+    <div class="meta-table">
+      <div class="meta-row"><span class="meta-label">📂 카테고리</span><span class="meta-value">${cat.icon} ${i.category}</span></div>
+      ${i.carNumber&&i.carNumber!=='-'?`<div class="meta-row"><span class="meta-label">🚗 차체번호</span><span class="meta-value" style="font-family:monospace">${i.carNumber}</span></div>`:''}
+      <div class="meta-row"><span class="meta-label">👤 담당자</span><span class="meta-value">${a.name} ${a.title} (${a.dept})</span></div>
+      <div class="meta-row"><span class="meta-label">✏️ 등록자</span><span class="meta-value">${c.name} ${c.title}</span></div>
+      <div class="meta-row"><span class="meta-label">🕐 등록일시</span><span class="meta-value">${fmtDate(i.createdAt)}</span></div>
+    </div>
+    <div class="desc-box">
+      <div class="section-title">📋 현상 설명</div>
+      <div class="desc-text">${i.description||''}</div>
+    </div>
+    <div class="comment-box">
+      <div class="section-title">💬 조치 이력 (${comments.length}건)</div>
+      ${comments.length===0?'<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:14px">아직 조치 내용이 없습니다</div>':
+        comments.map((cm,idx)=>{
+          const au=gu(cm.author)||{name:'?',title:''};
+          return `<div class="comment-item">
+            <div class="comment-head">
+              <div class="comment-avatar">${au.name[0]}</div>
+              <div><div class="comment-author">${au.name} ${au.title}</div>
+              <div class="comment-time">${fmtDate(cm.createdAt)}</div></div>
+            </div>
+            <div class="comment-text">${cm.text}</div>
+            ${idx<comments.length-1?'<div class="comment-divider"></div>':''}
+          </div>`;
+        }).join('')}
+    </div>
+    ${canAdvance?
+      `<button class="status-action-btn" style="background:${btnColor}" onclick="window.advanceStatus('${i.id}','${nextStatus}')">${btnLabel}</button>`:
+      '<div class="completed-banner">✅ 조치 완료된 이슈입니다</div>'}
+    <div style="height:90px"></div>`;
+}
+
+window.advanceStatus = async (id, next) => {
+  if(!confirm(`"${gi(id).status}" → "${next}"로 변경하시겠습니까?`)) return;
+  try {
+    await updateDoc(doc(db,'issues',id),{status:next});
+    toast(`✅ 상태가 "${next}"로 변경되었습니다`);
+  } catch(e) { toast('❌ 변경 실패: '+e.message); }
+};
+
+window.submitComment = async () => {
+  const text=$('comment-input').value.trim();
+  if(!text) return;
+  const i=gi(currentDetailId);
+  if(!i) return;
+  const newComment={ id:`c${Date.now()}`, author:currentUser.id, text, createdAt:new Date().toISOString() };
+  const updatedComments=[...(i.comments||[]),newComment];
+  try {
+    await updateDoc(doc(db,'issues',currentDetailId),{comments:updatedComments});
+    $('comment-input').value='';
+    $('comment-input').style.height='42px';
+    toast('💬 조치 내용이 등록되었습니다');
+  } catch(e) { toast('❌ 등록 실패: '+e.message); }
+};
+
+window.autoResize = el => {
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,90)+'px';
+};
+
+// ── 이슈 등록 ──
+function renderNewForm() {
+  $('cat-chips').innerHTML=Object.keys(CAT_CONFIG).map(c=>{
+    const cfg=CAT_CONFIG[c];
+    return `<div class="chip ${newIssueCat===c?'active':''}"
+      style="${newIssueCat===c?`background:${cfg.color};border-color:${cfg.color}`:''}"
+      onclick="window.setCat('${c}')">${cfg.icon} ${c}</div>`;
+  }).join('');
+  const priColors={'긴급':'var(--danger)','일반':'var(--warning)','낮음':'var(--secondary)'};
+  $('pri-chips').innerHTML=PRIORITIES.map(p=>
+    `<div class="chip ${newIssuePri===p?'active':''}"
+      style="${newIssuePri===p?`background:${priColors[p]};border-color:${priColors[p]}`:''}"
+      onclick="window.setPri('${p}')">${p==='긴급'?'🚨':p==='일반'?'📋':'🔵'} ${p}</div>`
+  ).join('');
+  $('car-chips').innerHTML=CAR_MODELS.map(m=>
+    `<div class="car-chip ${newIssueCar===m?'active':''}" onclick="window.setCar('${m}')">${m}</div>`
+  ).join('');
+  const ab=$('assignee-btn');
+  if(newAssigneeId){
+    const a=gu(newAssigneeId);
+    ab.className='assignee-btn selected';
+    ab.innerHTML=`<div class="mini-avatar" style="width:34px;height:34px;font-size:14px">${a.name[0]}</div>
+      <span style="font-size:14px;font-weight:600;color:var(--text)">${a.name} ${a.title} (${a.dept})</span>
+      <span style="margin-left:auto;font-size:12px;color:var(--secondary);font-weight:600">변경</span>`;
+  } else {
+    ab.className='assignee-btn';
+    ab.innerHTML='👤 담당자 선택 →';
+  }
+}
+
+window.setCat=c=>{newIssueCat=c;renderNewForm();};
+window.setPri=p=>{newIssuePri=p;renderNewForm();};
+window.setCar=m=>{newIssueCar=newIssueCar===m?'':m;renderNewForm();};
+
+window.openAssigneePicker=()=>{renderModalUserList();$('assignee-modal').classList.add('open');};
+window.closeAssigneePicker=()=>$('assignee-modal').classList.remove('open');
+function renderModalUserList(){
+  $('modal-dept-tabs').innerHTML=['전체',...DEPTS.slice(1)].map(d=>
+    `<div class="dept-tab ${modalDeptFilter===d?'active':''}" onclick="window.setModalDept('${d}')">${d}</div>`
+  ).join('');
+  const filtered=modalDeptFilter==='전체'?USERS:USERS.filter(u=>u.dept===modalDeptFilter);
+  $('modal-user-list').innerHTML=filtered.map(uu=>`
+    <div style="display:flex;align-items:center;padding:13px;gap:12px;border-bottom:1px solid var(--border);cursor:pointer"
+      onclick="window.selectAssignee('${uu.id}')">
+      <div class="avatar" style="width:38px;height:38px;font-size:14px;${newAssigneeId===uu.id?'background:var(--secondary)':''}">${uu.name[0]}</div>
+      <div><div style="font-size:15px;font-weight:700">${uu.name} ${uu.title}</div>
+      <div style="font-size:12px;color:var(--text-muted)">${uu.dept}</div></div>
+      ${newAssigneeId===uu.id?'<span style="margin-left:auto;color:var(--secondary);font-size:18px">✓</span>':''}
+    </div>`).join('');
+}
+window.setModalDept=d=>{modalDeptFilter=d;renderModalUserList();};
+window.selectAssignee=id=>{newAssigneeId=id;window.closeAssigneePicker();renderNewForm();};
+
+window.submitNewIssue = async () => {
+  const title=$('new-title').value.trim();
+  const desc=$('new-desc').value.trim();
+  if(!title){toast('❌ 제목을 입력해주세요.');return;}
+  if(!newAssigneeId){toast('❌ 담당자를 선택해주세요.');return;}
+  if(!desc){toast('❌ 현상 설명을 입력해주세요.');return;}
+  try {
+    showLoading('이슈 등록 중...');
+    await addDoc(collection(db,'issues'),{
+      title, category:newIssueCat, status:'접수', priority:newIssuePri,
+      carModel:newIssueCar||'-', carNumber:$('new-carnumber').value.trim()||'-',
+      description:desc, createdBy:currentUser.id, assignedTo:newAssigneeId,
+      createdAt:serverTimestamp(), comments:[]
+    });
+    hideLoading();
+    $('new-title').value=''; $('new-desc').value=''; $('new-carnumber').value='';
+    newIssueCat='품질불량'; newIssuePri='일반'; newIssueCar=''; newAssigneeId='';
+    toast(`✅ 이슈 등록 완료! ${gu(newAssigneeId||'')?.name||'담당자'}에게 알림 발송`);
+    switchTab('home');
+  } catch(e){ hideLoading(); toast('❌ 등록 실패: '+e.message); }
+};
+
+// ── 관리 ──
+function renderAdmin(){
+  if(!currentUser) return;
+  const depts=['생산1과','생산2과','공정기술과'];
+  let html=`<div class="profile-card">
+    <div class="profile-avatar">${currentUser.name[0]}</div>
+    <div><div class="profile-name">${currentUser.name} ${currentUser.title}</div>
+    <div class="profile-dept">${currentUser.dept}</div></div>
+    ${currentUser.role==='관리자'?'<div class="admin-crown">👑 관리자</div>':''}
+  </div>`;
+  html+=`<div style="padding:0 16px"><div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px">부서별 현황</div>
+  <div class="dept-cards">`;
+  depts.forEach(d=>{
+    const cnt=USERS.filter(u=>u.dept===d).length;
+    const openN=ISSUES.filter(i=>i.status!=='완료'&&USERS.filter(u=>u.dept===d).map(u=>u.id).includes(i.assignedTo)).length;
+    html+=`<div class="dept-stat"><div class="dept-stat-name">${d}</div>
+      <div class="dept-stat-count">${cnt}명</div>
+      ${openN>0?`<div class="dept-stat-open">미완료 ${openN}</div>`:''}
+    </div>`;
+  });
+  html+='</div></div>';
+  depts.forEach(d=>{
+    const members=USERS.filter(u=>u.dept===d);
+    html+=`<div class="section-block"><div class="section-block-header">
+      <span class="section-block-title">${d}</span>
+      <span class="section-block-count">${members.length}명</span></div>`;
+    members.forEach(mem=>{
+      const openN=ISSUES.filter(i=>i.assignedTo===mem.id&&i.status!=='완료').length;
+      html+=`<div class="member-item">
+        <div class="member-avatar ${mem.id===currentUser.id?'me':''}">${mem.name[0]}</div>
+        <div style="flex:1">
+          <div class="member-name-row">
+            <span class="member-name">${mem.name} ${mem.title}</span>
+            ${mem.role==='관리자'?'<span>👑</span>':''}
+            ${mem.id===currentUser.id?'<span class="me-badge">나</span>':''}
+          </div>
+          ${openN>0?`<div class="member-issues">미완료 이슈 ${openN}건</div>`:''}
+        </div>
+        ${currentUser.role==='관리자'&&mem.id!==currentUser.id?
+          `<button class="del-btn" onclick="window.deleteUser('${mem.id}')">삭제</button>`:''}
+      </div>`;
+    });
+    html+='</div>';
+  });
+  if(currentUser.role==='관리자'){
+    html+=`<button class="add-btn" onclick="window.openAddUser()">+ 부서원 추가</button>`;
+  }
+  html+='<div style="height:32px"></div>';
+  $('admin-content').innerHTML=html;
+}
+
+window.deleteUser = async id => {
+  const mem=gu(id);
+  if(!confirm(`${mem.name} ${mem.title}을(를) 삭제하시겠습니까?`)) return;
+  try {
+    await deleteDoc(doc(db,'users',id));
+    await loadUsers();
+    renderAdmin();
+    toast(`🗑️ ${mem.name} 삭제 완료`);
+  } catch(e){ toast('❌ 삭제 실패: '+e.message); }
+};
+
+window.openAddUser=()=>{
+  $('new-user-name').value='';
+  addUserDept='생산1과'; addUserTitle='책임';
+  renderAddUserModal();
+  $('add-user-modal').classList.add('open');
+};
+window.closeAddUser=()=>$('add-user-modal').classList.remove('open');
+function renderAddUserModal(){
+  $('new-user-dept-chips').innerHTML=['생산1과','생산2과','공정기술과'].map(d=>
+    `<div class="chip ${addUserDept===d?'active':''}" onclick="window.setAddDept('${d}')">${d}</div>`
+  ).join('');
+  $('new-user-title-chips').innerHTML=['매니저','CM','책임','선임','주임'].map(t=>
+    `<div class="chip ${addUserTitle===t?'active':''}" onclick="window.setAddTitle('${t}')">${t}</div>`
+  ).join('');
+}
+window.setAddDept=d=>{addUserDept=d;renderAddUserModal();};
+window.setAddTitle=t=>{addUserTitle=t;renderAddUserModal();};
+window.submitAddUser=async()=>{
+  const name=$('new-user-name').value.trim();
+  if(!name){toast('❌ 이름을 입력해주세요.');return;}
+  try{
+    await addDoc(collection(db,'users'),{name,dept:addUserDept,title:addUserTitle,role:'사용자'});
+    await loadUsers();
+    window.closeAddUser();
+    renderAdmin();
+    renderLoginUsers();
+    toast(`✅ ${name} ${addUserTitle} 추가 완료`);
+  }catch(e){toast('❌ 추가 실패: '+e.message);}
+};
+
+// ── 타임아웃 래퍼 (15초) ──
+function withTimeout(promise, ms=15000, label='작업') {
+  return Promise.race([
+    promise,
+    new Promise((_,rej) => setTimeout(()=>rej(new Error(`${label} 시간 초과 (${ms/1000}초)\n→ Firestore DB가 생성되어 있는지 확인해주세요`)), ms))
+  ]);
+}
+
+// ── 앱 시작 ──
+async function startApp() {
+  showLoading('Firebase 연결 중...');
+  try {
+    $('loading-text').textContent = '부서원 데이터 확인 중...';
+    const snap = await withTimeout(getDocs(collection(db,'users')), 15000, 'Firestore 연결');
+
+    if(snap.empty) {
+      $('loading-text').textContent = '초기 데이터 생성 중... (1/12)';
+      // 병렬로 한꺼번에 생성 (순차→병렬 개선)
+      await withTimeout(
+        Promise.all(SEED_USERS.map((u,i) => addDoc(collection(db,'users'), u))),
+        20000, '초기 데이터 생성'
+      );
+    }
+
+    $('loading-text').textContent = '데이터 로드 중...';
+    await loadUsers();
+
+    // 이전 로그인 복원
+    const savedId = localStorage.getItem('c3_userId');
+    if(savedId) {
+      const found = USERS.find(u=>u.id===savedId);
+      if(found){ currentUser=found; }
+    }
+    hideLoading();
+    if(currentUser){
+      $('tabbar').style.display='flex';
+      switchTab('home');
+    } else {
+      showScreen('login');
+      renderLoginUsers();
+    }
+  } catch(e) {
+    console.error(e);
+    // 오류 화면으로 전환
+    $('loading-spinner').style.display='none';
+    $('loading-text').textContent = '❌ 연결 실패';
+    $('retry-btn').style.display='block';
+    $('error-detail').style.display='block';
+    $('error-detail').textContent = e.message;
+  }
+}
+
+startApp();
+</script>
+</body>
+</html>
