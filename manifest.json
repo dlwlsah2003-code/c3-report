@@ -2,7 +2,7 @@
   "name": "C3 Report - 차체3부 이슈관리",
   "short_name": "C3 Report",
   "description": "화성차체3부 현장 이슈 관리 시스템",
-  "start_url": "./index.html",
+  "start_url": "/chache3-manager",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#002c5f",
