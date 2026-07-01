@@ -4,18 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>C3 Report – 차체3부 이슈관리</title>
-
-<!-- PWA: 홈화면 앱처럼 설치 -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#002c5f">
-
-<!-- iOS 홈화면 추가 시 앱처럼 동작 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="C3 Report">
 <link rel="apple-touch-icon" href="icon-192.png">
-
-<!-- Android -->
 <meta name="mobile-web-app-capable" content="yes">
 <style>
   :root {
@@ -37,7 +31,6 @@
   .btn:active{opacity:.8;}
   .btn-primary{background:var(--primary);color:#fff;}
 
-  /* 로딩 오버레이 */
   #loading-overlay{position:fixed;inset:0;background:rgba(0,44,95,.92);
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     z-index:999;color:#fff;gap:16px;}
@@ -47,7 +40,10 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   .loading-text{font-size:14px;color:rgba(255,255,255,.8);}
 
-  /* 탭바 */
+  .offline-banner{background:var(--warning);color:#fff;text-align:center;
+    font-size:12px;font-weight:700;padding:6px;display:none;position:sticky;top:0;z-index:90;}
+  .offline-banner.show{display:block;}
+
   .tabbar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
     width:100%;max-width:430px;background:#fff;border-top:1px solid var(--border);
     display:flex;z-index:100;}
@@ -59,7 +55,6 @@
   .tab-badge{position:absolute;top:6px;right:calc(50% - 22px);background:var(--danger);
     color:#fff;border-radius:10px;font-size:9px;font-weight:800;padding:1px 5px;}
 
-  /* 로그인 */
   #screen-login{background:var(--primary);}
   .login-header{display:flex;flex-direction:column;align-items:center;padding:48px 24px 32px;gap:14px;}
   .logo-box{width:72px;height:72px;border-radius:20px;background:var(--secondary);
@@ -90,7 +85,6 @@
     padding:2px 7px;border-radius:6px;margin-left:auto;}
   .check-mark{color:var(--secondary);font-size:18px;font-weight:900;margin-left:auto;}
 
-  /* 홈 */
   #screen-home{padding-bottom:70px;}
   .appbar{background:var(--primary);padding:14px 20px 20px;}
   .appbar-top{display:flex;justify-content:space-between;align-items:center;}
@@ -156,7 +150,6 @@
   .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
   .empty-state .icon{font-size:48px;margin-bottom:12px;}
 
-  /* 상세 */
   #screen-detail{background:var(--bg);padding-bottom:80px;}
   .detail-header{background:var(--primary);display:flex;align-items:center;
     justify-content:space-between;padding:14px 16px;}
@@ -170,8 +163,11 @@
   .meta-row{display:flex;justify-content:space-between;align-items:center;
     padding:10px 0;border-bottom:1px solid var(--border);}
   .meta-row:last-child{border-bottom:none;}
-  .meta-label{font-size:13px;color:var(--text-sub);font-weight:600;}
-  .meta-value{font-size:13px;color:var(--text);font-weight:600;text-align:right;max-width:60%;}
+  .meta-label{font-size:13px;color:var(--text-sub);font-weight:600;flex-shrink:0;}
+  .meta-value{font-size:13px;color:var(--text);font-weight:600;text-align:right;max-width:65%;
+    display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
+  .change-link{color:var(--secondary);font-size:12px;cursor:pointer;font-weight:700;
+    white-space:nowrap;flex-shrink:0;}
   .desc-box,.comment-box{background:#fff;border-radius:14px;padding:16px;
     box-shadow:0 1px 6px rgba(0,0,0,.05);}
   .section-title{font-size:14px;font-weight:800;color:var(--text);margin-bottom:12px;}
@@ -187,6 +183,8 @@
   .status-action-btn{border:none;border-radius:14px;padding:16px;font-size:16px;
     font-weight:700;color:#fff;cursor:pointer;width:100%;transition:opacity .15s;}
   .status-action-btn:active{opacity:.85;}
+  .delete-issue-btn{border:1.5px solid var(--danger);border-radius:14px;padding:14px;font-size:14px;
+    font-weight:700;color:var(--danger);cursor:pointer;width:100%;background:var(--danger-light);}
   .completed-banner{background:var(--success-light);border-radius:14px;padding:16px;
     text-align:center;font-size:15px;font-weight:700;color:var(--success);}
   .comment-input-area{position:fixed;bottom:0;left:50%;transform:translateX(-50%);
@@ -199,7 +197,6 @@
     color:#fff;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;}
   .send-btn:disabled{background:var(--border);cursor:default;}
 
-  /* 등록 */
   #screen-new{background:var(--bg);padding-bottom:80px;overflow-y:auto;}
   .new-header{background:var(--primary);padding:14px 16px;display:flex;align-items:center;justify-content:center;}
   .new-header-title{color:#fff;font-size:16px;font-weight:700;}
@@ -230,8 +227,8 @@
     font-size:16px;font-weight:800;color:#fff;cursor:pointer;
     width:calc(100% - 32px);margin:0 16px 16px;box-shadow:0 4px 16px rgba(0,44,95,.3);}
   .submit-btn:active{opacity:.85;}
+  .submit-btn:disabled{background:var(--text-muted);box-shadow:none;cursor:not-allowed;}
 
-  /* 관리 */
   #screen-admin{background:var(--bg);padding-bottom:80px;overflow-y:auto;}
   .admin-header{background:var(--primary);display:flex;justify-content:space-between;
     align-items:center;padding:14px 20px 20px;}
@@ -275,7 +272,6 @@
     padding:16px;font-size:15px;font-weight:700;color:#fff;cursor:pointer;
     width:calc(100% - 32px);}
 
-  /* 모달 */
   .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
     z-index:200;justify-content:flex-end;flex-direction:column;align-items:center;}
   .modal-overlay.open{display:flex;}
@@ -291,7 +287,6 @@
   .modal-confirm{flex:1;background:var(--primary);border:none;border-radius:12px;padding:14px;
     font-size:15px;font-weight:700;color:#fff;cursor:pointer;}
 
-  /* 알림 토스트 */
   #toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);
     background:#1a1a1a;color:#fff;padding:12px 20px;border-radius:12px;
     font-size:13px;font-weight:600;z-index:999;opacity:0;
@@ -301,9 +296,8 @@
 </head>
 <body>
 
-<!-- 로딩 -->
 <div id="loading-overlay">
-  <div class="logo-box" style="width:64px;height:64px;border-radius:18px;background:var(--secondary);
+  <div style="width:64px;height:64px;border-radius:18px;background:var(--secondary);
     display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;
     box-shadow:0 4px 20px rgba(0,170,210,.4)">C3</div>
   <div class="spinner" id="loading-spinner"></div>
@@ -317,10 +311,10 @@
     margin-top:8px;max-width:320px;text-align:center;word-break:break-all;"></div>
 </div>
 
-<!-- 토스트 -->
+<div class="offline-banner" id="offline-banner">📡 오프라인 — 캐시된 데이터 표시 중</div>
 <div id="toast"></div>
 
-<!-- ── 로그인 ── -->
+<!-- 로그인 -->
 <div id="screen-login" class="screen">
   <div class="login-header">
     <div class="logo-box">C3</div>
@@ -336,7 +330,7 @@
   </div>
 </div>
 
-<!-- ── 홈 ── -->
+<!-- 홈 -->
 <div id="screen-home" class="screen">
   <div class="appbar">
     <div class="appbar-top">
@@ -360,14 +354,14 @@
   </div>
   <div class="search-box">
     <span>🔍</span>
-    <input type="text" placeholder="차종, 제목, 차체번호 검색..." id="search-input" oninput="renderIssues()">
+    <input type="text" placeholder="제목·차종·차체번호·담당자·카테고리·현상 검색..." id="search-input" oninput="renderIssues()">
   </div>
   <div class="filter-row" id="filter-row"></div>
   <div class="result-count" id="result-count"></div>
   <div class="issue-list" id="issue-list"></div>
 </div>
 
-<!-- ── 이슈 상세 ── -->
+<!-- 이슈 상세 -->
 <div id="screen-detail" class="screen">
   <div class="detail-header">
     <div class="back-btn" onclick="goBack()">←</div>
@@ -382,7 +376,7 @@
   </div>
 </div>
 
-<!-- ── 등록 ── -->
+<!-- 이슈 등록 -->
 <div id="screen-new" class="screen">
   <div class="new-header"><div class="new-header-title">이슈 등록</div></div>
   <div style="padding-bottom:16px">
@@ -399,17 +393,17 @@
       <input type="text" class="form-input" id="new-carnumber"
         placeholder="예) CN 1845~, ASW 256267, EXF 322227">
       <div class="form-label">담당자 <span class="required">*</span></div>
-      <div class="assignee-btn" id="assignee-btn" onclick="openAssigneePicker()">👤 담당자 선택 →</div>
+      <div class="assignee-btn" id="assignee-btn" onclick="openAssigneePicker('new')">👤 담당자 선택 →</div>
       <div class="form-label">현상 설명 <span class="required">*</span></div>
       <textarea class="form-input form-textarea" id="new-desc"
         placeholder="발생 현상, 조건, 관련 번호 등을 입력하세요"></textarea>
     </div>
-    <button class="submit-btn" onclick="submitNewIssue()">🚀 이슈 등록하기</button>
+    <button class="submit-btn" id="submit-btn" onclick="submitNewIssue()">🚀 이슈 등록하기</button>
     <div style="height:16px"></div>
   </div>
 </div>
 
-<!-- ── 관리 ── -->
+<!-- 관리 -->
 <div id="screen-admin" class="screen">
   <div class="admin-header">
     <div class="admin-header-info">
@@ -434,10 +428,10 @@
   </div>
 </div>
 
-<!-- 담당자 선택 모달 -->
+<!-- 담당자 선택/변경 모달 -->
 <div class="modal-overlay" id="assignee-modal">
   <div class="modal-card">
-    <div class="modal-title">담당자 선택</div>
+    <div class="modal-title" id="assignee-modal-title">담당자 선택</div>
     <div class="dept-tabs" id="modal-dept-tabs" style="margin-bottom:12px"></div>
     <div id="modal-user-list" style="max-height:320px;overflow-y:auto"></div>
     <div class="modal-btn-row">
@@ -463,28 +457,27 @@
   </div>
 </div>
 
-<!-- ══════════════ Firebase + 앱 로직 ══════════════ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import {
-  getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc,
-  getDocs, onSnapshot, query, orderBy, serverTimestamp, getDoc
+  initializeFirestore, persistentLocalCache,
+  collection, doc, addDoc, updateDoc, deleteDoc,
+  getDocs, onSnapshot, query, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
-// ── Firebase 초기화 ──
 const firebaseConfig = {
   apiKey: "AIzaSyCbjxbaJrzCuWQ-YXlUKqozIv8jKarELQ8",
   authDomain: "chache3-manager.firebaseapp.com",
   projectId: "chache3-manager",
   storageBucket: "chache3-manager.firebasestorage.app",
   messagingSenderId: "532177102749",
-  appId: "1:532177102749:web:7ce403c7000b5d2408f174",
-  measurementId: "G-6NDD3XW9GC"
+  appId: "1:532177102749:web:7ce403c7000b5d2408f174"
 };
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({})
+});
 
-// ── 초기 부서원 데이터 ──
 const SEED_USERS = [
   { name:'이진모', dept:'생산1과', title:'매니저', role:'관리자' },
   { name:'정희주', dept:'생산1과', title:'책임',   role:'사용자' },
@@ -500,24 +493,15 @@ const SEED_USERS = [
   { name:'김병오', dept:'공정기술과', title:'매니저', role:'사용자' },
 ];
 
-// ── 앱 상태 ──
-let USERS = [];
-let ISSUES = [];
-let currentUser = null;
-let selectedLoginUser = null;
-let currentDeptFilter = '전체';
-let activeTabFilter = '전체';
-let activeStatusFilter = '전체';
+let USERS = [], ISSUES = [];
+let currentUser = null, selectedLoginUser = null;
+let currentDeptFilter = '전체', activeTabFilter = '전체', activeStatusFilter = '전체';
 let currentDetailId = null;
-let newIssueCat = '품질불량';
-let newIssuePri = '일반';
-let newIssueCar = '';
-let newAssigneeId = '';
+let newIssueCat = '품질불량', newIssuePri = '일반', newIssueCar = '', newAssigneeId = '';
 let modalDeptFilter = '전체';
-let addUserDept = '생산1과';
-let addUserTitle = '책임';
-let unsubIssues = null;
-let prevTab = 'home';
+let assigneePickerContext = 'new';
+let addUserDept = '생산1과', addUserTitle = '책임';
+let unsubIssues = null, prevTab = 'home';
 
 const CAT_CONFIG = {
   '품질불량':{ icon:'⚠️', color:'#8b5cf6' },
@@ -529,125 +513,140 @@ const CAT_CONFIG = {
 const CAR_MODELS = ['DL3','GL3','CV','K5','K8','기타','해당없음'];
 const PRIORITIES = ['긴급','일반','낮음'];
 const DEPTS = ['전체','생산1과','생산2과','공정기술과'];
-const TITLES = ['매니저','CM','책임','선임','주임'];
 const STATUS_ORDER = ['접수','조치중','완료'];
 
-// ── 유틸 ──
-const $  = id => document.getElementById(id);
+const $ = id => document.getElementById(id);
 const gu = id => USERS.find(u => u.id === id);
 const gi = id => ISSUES.find(i => i.id === id);
-function showLoading(txt='로딩 중...') { $('loading-overlay').classList.remove('hidden'); $('loading-text').textContent=txt; }
-function hideLoading() { $('loading-overlay').classList.add('hidden'); }
-function toast(msg) {
-  const t=$('toast'); t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2500);
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])
+  );
 }
+
+function showLoading(txt='로딩 중...') {
+  $('loading-overlay').classList.remove('hidden');
+  $('loading-text').textContent = txt;
+}
+function hideLoading() { $('loading-overlay').classList.add('hidden'); }
+
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
 function timeAgo(val) {
-  if(!val) return '';
+  if (!val) return '';
   const d = val?.toDate ? val.toDate() : new Date(val);
-  const diff = Math.floor((Date.now()-d)/1000);
-  if(diff<60) return '방금 전';
-  if(diff<3600) return `${Math.floor(diff/60)}분 전`;
-  if(diff<86400) return `${Math.floor(diff/3600)}시간 전`;
+  const diff = Math.floor((Date.now() - d) / 1000);
+  if (diff < 60) return '방금 전';
+  if (diff < 3600) return `${Math.floor(diff/60)}분 전`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}시간 전`;
   return `${Math.floor(diff/86400)}일 전`;
 }
+
 function fmtDate(val) {
-  if(!val) return '';
+  if (!val) return '';
   const d = val?.toDate ? val.toDate() : new Date(val);
-  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
-function statusBadge(s) {
-  const icons={접수:'🔴',조치중:'🟡',완료:'🟢'};
-  return `<span class="badge badge-${s}">${icons[s]||''} ${s}</span>`;
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-// ── Firebase: 유저 로드 ──
+function statusBadge(s) {
+  const icons = {접수:'🔴', 조치중:'🟡', 완료:'🟢'};
+  return `<span class="badge badge-${s}">${icons[s]||''} ${esc(s)}</span>`;
+}
+
+window.addEventListener('online',  () => $('offline-banner').classList.remove('show'));
+window.addEventListener('offline', () => $('offline-banner').classList.add('show'));
+if (!navigator.onLine) $('offline-banner').classList.add('show');
 
 async function loadUsers() {
-  const snap = await getDocs(collection(db,'users'));
-  USERS = snap.docs.map(d=>({id:d.id,...d.data()}));
-  USERS.sort((a,b)=>{
-    const dOrder=['생산1과','생산2과','공정기술과'];
-    return dOrder.indexOf(a.dept)-dOrder.indexOf(b.dept)||a.name.localeCompare(b.name);
+  const snap = await getDocs(collection(db, 'users'));
+  USERS = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  USERS.sort((a, b) => {
+    const order = ['생산1과','생산2과','공정기술과'];
+    return order.indexOf(a.dept) - order.indexOf(b.dept) || a.name.localeCompare(b.name);
   });
 }
 
-// ── Firebase: 이슈 실시간 리스너 ──
 function startIssuesListener() {
-  if(unsubIssues) unsubIssues();
-  const q = query(collection(db,'issues'), orderBy('createdAt','desc'));
+  if (unsubIssues) unsubIssues();
+  const q = query(collection(db, 'issues'), orderBy('createdAt', 'desc'));
   unsubIssues = onSnapshot(q, snap => {
-    ISSUES = snap.docs.map(d=>({id:d.id,...d.data()}));
+    ISSUES = snap.docs.map(d => ({id: d.id, ...d.data()}));
     renderIssues();
-    if(currentDetailId) renderDetail();
+    if (currentDetailId) renderDetail();
     renderAdmin();
   }, err => {
     console.error(err);
     toast('⚠️ 실시간 업데이트 오류');
   });
 }
-function stopIssuesListener() { if(unsubIssues){unsubIssues();unsubIssues=null;} }
+function stopIssuesListener() { if (unsubIssues) { unsubIssues(); unsubIssues = null; } }
 
-// ── 화면 전환 ──
 function showScreen(name) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $(`screen-${name}`).classList.add('active');
 }
 
-// ── 로그인 ──
 function renderLoginUsers() {
-  $('dept-tabs').innerHTML = DEPTS.map(d=>
-    `<div class="dept-tab ${currentDeptFilter===d?'active':''}" onclick="window.setDeptFilter('${d}')">${d}</div>`
+  $('dept-tabs').innerHTML = DEPTS.map(d =>
+    `<div class="dept-tab ${currentDeptFilter===d?'active':''}" onclick="window.setDeptFilter('${esc(d)}')">${esc(d)}</div>`
   ).join('');
-  const filtered = currentDeptFilter==='전체' ? USERS : USERS.filter(u=>u.dept===currentDeptFilter);
-  $('user-list').innerHTML = filtered.map(u=>`
+  const filtered = currentDeptFilter === '전체' ? USERS : USERS.filter(u => u.dept === currentDeptFilter);
+  $('user-list').innerHTML = filtered.map(u => `
     <div class="user-item ${selectedLoginUser?.id===u.id?'selected':''}" onclick="window.selectUser('${u.id}')">
-      <div class="avatar ${selectedLoginUser?.id===u.id?'sel':''}">${u.name[0]}</div>
-      <div><div class="user-name">${u.name}</div><div class="user-meta">${u.dept} &nbsp;•&nbsp; ${u.title}</div></div>
+      <div class="avatar ${selectedLoginUser?.id===u.id?'sel':''}">${esc(u.name[0])}</div>
+      <div>
+        <div class="user-name">${esc(u.name)}</div>
+        <div class="user-meta">${esc(u.dept)} &nbsp;•&nbsp; ${esc(u.title)}</div>
+      </div>
       ${u.role==='관리자'?'<div class="admin-badge">관리자</div>':''}
       ${selectedLoginUser?.id===u.id?'<div class="check-mark">✓</div>':''}
     </div>`).join('');
 }
 
-window.setDeptFilter = d => { currentDeptFilter=d; renderLoginUsers(); };
+window.setDeptFilter = d => { currentDeptFilter = d; renderLoginUsers(); };
 window.selectUser = id => {
-  selectedLoginUser = USERS.find(u=>u.id===id);
-  const btn=$('login-btn');
-  btn.disabled=false;
-  btn.textContent=`${selectedLoginUser.name}(으)로 시작하기`;
+  selectedLoginUser = USERS.find(u => u.id === id);
+  const btn = $('login-btn');
+  btn.disabled = false;
+  btn.textContent = `${selectedLoginUser.name}(으)로 시작하기`;
   renderLoginUsers();
 };
 window.doLogin = () => {
-  if(!selectedLoginUser) return;
+  if (!selectedLoginUser) return;
   currentUser = selectedLoginUser;
   localStorage.setItem('c3_userId', currentUser.id);
-  $('tabbar').style.display='flex';
+  $('tabbar').style.display = 'flex';
   switchTab('home');
 };
 window.doLogout = () => {
-  if(!confirm('로그아웃 하시겠습니까?')) return;
+  if (!confirm('로그아웃 하시겠습니까?')) return;
   stopIssuesListener();
-  currentUser=null; selectedLoginUser=null;
+  currentUser = null; selectedLoginUser = null;
   localStorage.removeItem('c3_userId');
-  $('tabbar').style.display='none';
-  $('login-btn').disabled=true;
-  $('login-btn').textContent='이름을 선택하세요';
+  $('tabbar').style.display = 'none';
+  $('login-btn').disabled = true;
+  $('login-btn').textContent = '이름을 선택하세요';
   showScreen('login');
   renderLoginUsers();
 };
 
-// ── 탭 ──
 window.switchTab = tab => {
   showScreen(tab);
-  document.querySelectorAll('.tabbar-item').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tabbar-item').forEach(t => t.classList.remove('active'));
   $(`tab-${tab}`).classList.add('active');
-  if(tab==='home') { renderHome(); startIssuesListener(); }
-  if(tab==='new')  renderNewForm();
-  if(tab==='admin') renderAdmin();
+  if (tab === 'home')  { renderHome(); startIssuesListener(); }
+  if (tab === 'new')   renderNewForm();
+  if (tab === 'admin') renderAdmin();
   prevTab = tab;
 };
 
-// ── 홈 ──
 function renderHome() {
   $('home-avatar').textContent = currentUser.name[0];
   $('home-name').textContent = currentUser.name;
@@ -656,77 +655,85 @@ function renderHome() {
 }
 
 function renderFilterRow() {
-  const TAB_FILTERS=['전체','내 담당','미완료'];
-  const STATUS_FILTERS=['전체','접수','조치중','완료'];
+  const TAB_FILTERS = ['전체','내 담당','미완료'];
+  const STATUS_FILTERS = ['전체','접수','조치중','완료'];
   $('filter-row').innerHTML =
-    TAB_FILTERS.map(t=>
+    TAB_FILTERS.map(t =>
       `<div class="filter-chip ${activeTabFilter===t?'active':''}" onclick="window.setTabFilter('${t}')">${t}</div>`
     ).join('') +
     '<div class="divider-chip"></div>' +
-    STATUS_FILTERS.map(s=>
+    STATUS_FILTERS.map(s =>
       `<div class="filter-chip s-${s} ${activeStatusFilter===s?'active':''}" onclick="window.setStatusFilter('${s}')">${s!=='전체'?{접수:'🔴',조치중:'🟡',완료:'🟢'}[s]+' ':''} ${s}</div>`
     ).join('');
 }
 
-window.setTabFilter = t => { activeTabFilter=t; renderFilterRow(); renderIssues(); };
-window.setStatusFilter = s => { activeStatusFilter=s; renderFilterRow(); renderIssues(); };
-window.filterStatus = s => { activeStatusFilter=s; renderFilterRow(); renderIssues(); switchTab('home'); };
+window.setTabFilter    = t => { activeTabFilter = t;   renderFilterRow(); renderIssues(); };
+window.setStatusFilter = s => { activeStatusFilter = s; renderFilterRow(); renderIssues(); };
+window.filterStatus    = s => { activeStatusFilter = s; renderFilterRow(); renderIssues(); switchTab('home'); };
 
 function renderIssues() {
-  if(!currentUser) return;
-  const q = ($('search-input')||{}).value?.toLowerCase()||'';
-  let list=[...ISSUES];
-  if(activeTabFilter==='내 담당') list=list.filter(i=>i.assignedTo===currentUser.id);
-  if(activeTabFilter==='미완료') list=list.filter(i=>i.status!=='완료');
-  if(activeStatusFilter!=='전체') list=list.filter(i=>i.status===activeStatusFilter);
-  if(q) list=list.filter(i=>i.title?.toLowerCase().includes(q)||i.carModel?.toLowerCase().includes(q)||i.carNumber?.toLowerCase().includes(q));
-  list.sort((a,b)=>{
-    const pa=a.priority==='긴급'&&a.status!=='완료'?0:1;
-    const pb=b.priority==='긴급'&&b.status!=='완료'?0:1;
-    if(pa!==pb) return pa-pb;
-    const da=a.createdAt?.toDate?a.createdAt.toDate():new Date(a.createdAt||0);
-    const db2=b.createdAt?.toDate?b.createdAt.toDate():new Date(b.createdAt||0);
-    return db2-da;
+  if (!currentUser) return;
+  const q = ($('search-input')||{}).value?.toLowerCase() || '';
+  let list = [...ISSUES];
+  if (activeTabFilter === '내 담당') list = list.filter(i => i.assignedTo === currentUser.id);
+  if (activeTabFilter === '미완료')  list = list.filter(i => i.status !== '완료');
+  if (activeStatusFilter !== '전체') list = list.filter(i => i.status === activeStatusFilter);
+  if (q) list = list.filter(i => {
+    const assignee = gu(i.assignedTo);
+    return (
+      i.title?.toLowerCase().includes(q) ||
+      i.carModel?.toLowerCase().includes(q) ||
+      i.carNumber?.toLowerCase().includes(q) ||
+      i.category?.toLowerCase().includes(q) ||
+      i.description?.toLowerCase().includes(q) ||
+      assignee?.name?.toLowerCase().includes(q)
+    );
   });
-  // 통계
-  $('stat-접수').textContent=ISSUES.filter(i=>i.status==='접수').length;
-  $('stat-조치중').textContent=ISSUES.filter(i=>i.status==='조치중').length;
-  $('stat-완료').textContent=ISSUES.filter(i=>i.status==='완료').length;
-  // 긴급 배지
-  const urgN=ISSUES.filter(i=>i.priority==='긴급'&&i.status!=='완료').length;
-  const ub=$('urgent-badge');
-  if(urgN>0){ub.style.display='flex';ub.textContent=urgN;}else{ub.style.display='none';}
-  $('result-count').textContent=`총 ${list.length}건`;
-  $('issue-list').innerHTML = list.length===0
+  list.sort((a, b) => {
+    const pa = a.priority==='긴급' && a.status!=='완료' ? 0 : 1;
+    const pb = b.priority==='긴급' && b.status!=='완료' ? 0 : 1;
+    if (pa !== pb) return pa - pb;
+    const da = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt||0);
+    const db2 = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt||0);
+    return db2 - da;
+  });
+  $('stat-접수').textContent  = ISSUES.filter(i => i.status === '접수').length;
+  $('stat-조치중').textContent = ISSUES.filter(i => i.status === '조치중').length;
+  $('stat-완료').textContent  = ISSUES.filter(i => i.status === '완료').length;
+  const urgN = ISSUES.filter(i => i.priority==='긴급' && i.status!=='완료').length;
+  const ub = $('urgent-badge');
+  if (urgN > 0) { ub.style.display='flex'; ub.textContent=urgN; } else { ub.style.display='none'; }
+  $('result-count').textContent = `총 ${list.length}건`;
+  $('issue-list').innerHTML = list.length === 0
     ? '<div class="empty-state"><div class="icon">📭</div><div>이슈가 없습니다</div></div>'
-    : list.map(i=>renderIssueCard(i)).join('');
+    : list.map(i => renderIssueCard(i)).join('');
 }
 
 function renderIssueCard(i) {
-  const a=gu(i.assignedTo)||{name:'?',title:'',dept:''};
-  const cat=CAT_CONFIG[i.category]||CAT_CONFIG['기타'];
-  const isUrgent=i.priority==='긴급'&&i.status!=='완료';
-  const comments=i.comments||[];
+  const a = gu(i.assignedTo) || {name:'?', title:'', dept:''};
+  const cat = CAT_CONFIG[i.category] || CAT_CONFIG['기타'];
+  const isUrgent = i.priority==='긴급' && i.status!=='완료';
+  const comments = i.comments || [];
   return `
   <div class="issue-card ${isUrgent?'urgent':''}" onclick="window.openDetail('${i.id}')">
     <div class="card-top">
       <div class="card-tags">
-        ${i.carModel&&i.carModel!=='-'?`<span class="car-badge">${i.carModel}</span>`:''}
+        ${i.carModel&&i.carModel!=='-'?`<span class="car-badge">${esc(i.carModel)}</span>`:''}
         ${isUrgent?'<span class="urgent-badge">🚨 긴급</span>':''}
       </div>
       ${statusBadge(i.status)}
     </div>
-    <div class="card-title">${i.title||''}</div>
+    <div class="card-title">${esc(i.title)}</div>
     <div class="card-meta">
-      <span class="cat-badge" style="background:${cat.color}18;color:${cat.color}">${cat.icon} ${i.category}</span>
-      ${i.carNumber&&i.carNumber!=='-'?`<span class="car-number">${i.carNumber}</span>`:''}
+      <span class="cat-badge" style="background:${cat.color}18;color:${cat.color}">${cat.icon} ${esc(i.category)}</span>
+      ${i.carNumber&&i.carNumber!=='-'?`<span class="car-number">${esc(i.carNumber)}</span>`:''}
     </div>
     <div class="card-bottom">
       <div class="assignee-row">
-        <div class="mini-avatar">${a.name[0]}</div>
-        <span class="assignee-name">${a.name} ${a.title}</span>
+        <div class="mini-avatar">${esc(a.name[0])}</div>
+        <span class="assignee-name">${esc(a.name)} ${esc(a.title)}</span>
         <span class="dot">·</span>
-        <span class="dept-name">${a.dept}</span>
+        <span class="dept-name">${esc(a.dept)}</span>
       </div>
       <span class="time-text">${timeAgo(i.createdAt)}</span>
     </div>
@@ -734,283 +741,374 @@ function renderIssueCard(i) {
   </div>`;
 }
 
-// ── 이슈 상세 ──
 window.openDetail = id => {
-  currentDetailId=id;
+  currentDetailId = id;
   renderDetail();
   showScreen('detail');
-  document.querySelectorAll('.tabbar-item').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tabbar-item').forEach(t => t.classList.remove('active'));
 };
-window.goBack = () => switchTab(prevTab||'home');
+window.goBack = () => switchTab(prevTab || 'home');
 
 function renderDetail() {
-  const i=gi(currentDetailId);
-  if(!i) return;
-  const a=gu(i.assignedTo)||{name:'?',title:'',dept:''};
-  const c=gu(i.createdBy)||{name:'?',title:''};
-  const cat=CAT_CONFIG[i.category]||CAT_CONFIG['기타'];
-  const isUrgent=i.priority==='긴급';
-  const canAdvance=i.status!=='완료';
-  const nextStatus=STATUS_ORDER[STATUS_ORDER.indexOf(i.status)+1];
-  const btnLabel=i.status==='접수'?'🟡 조치 시작':'🟢 조치 완료';
-  const btnColor=i.status==='접수'?'var(--warning)':'var(--success)';
-  const comments=i.comments||[];
+  const i = gi(currentDetailId);
+  if (!i) return;
+  const a   = gu(i.assignedTo) || {name:'?', title:'', dept:''};
+  const c   = gu(i.createdBy)  || {name:'?', title:''};
+  const cat = CAT_CONFIG[i.category] || CAT_CONFIG['기타'];
+  const isUrgent   = i.priority === '긴급';
+  const canAdvance = i.status !== '완료';
+  const nextStatus = STATUS_ORDER[STATUS_ORDER.indexOf(i.status) + 1];
+  const btnLabel   = i.status==='접수' ? '🟡 조치 시작' : '🟢 조치 완료';
+  const btnColor   = i.status==='접수' ? 'var(--warning)' : 'var(--success)';
+  const comments   = i.comments || [];
 
-  $('detail-content').innerHTML=`
+  const canDelete         = currentUser && (currentUser.id===i.createdBy || currentUser.role==='관리자');
+  const canChangeAssignee = currentUser && i.status!=='완료' && (
+    currentUser.id===i.assignedTo || currentUser.id===i.createdBy || currentUser.role==='관리자'
+  );
+
+  $('detail-content').innerHTML = `
     <div class="status-row">
       ${statusBadge(i.status)}
       ${isUrgent?'<span class="badge" style="background:var(--danger-light);color:var(--danger)">🚨 긴급</span>':''}
-      ${i.carModel&&i.carModel!=='-'?`<span class="badge" style="background:var(--primary);color:#fff">${i.carModel}</span>`:''}
+      ${i.carModel&&i.carModel!=='-'?`<span class="badge" style="background:var(--primary);color:#fff">${esc(i.carModel)}</span>`:''}
     </div>
-    <div class="detail-title">${i.title||''}</div>
+    <div class="detail-title">${esc(i.title)}</div>
     <div class="meta-table">
-      <div class="meta-row"><span class="meta-label">📂 카테고리</span><span class="meta-value">${cat.icon} ${i.category}</span></div>
-      ${i.carNumber&&i.carNumber!=='-'?`<div class="meta-row"><span class="meta-label">🚗 차체번호</span><span class="meta-value" style="font-family:monospace">${i.carNumber}</span></div>`:''}
-      <div class="meta-row"><span class="meta-label">👤 담당자</span><span class="meta-value">${a.name} ${a.title} (${a.dept})</span></div>
-      <div class="meta-row"><span class="meta-label">✏️ 등록자</span><span class="meta-value">${c.name} ${c.title}</span></div>
-      <div class="meta-row"><span class="meta-label">🕐 등록일시</span><span class="meta-value">${fmtDate(i.createdAt)}</span></div>
+      <div class="meta-row">
+        <span class="meta-label">📂 카테고리</span>
+        <span class="meta-value">${cat.icon} ${esc(i.category)}</span>
+      </div>
+      ${i.carNumber&&i.carNumber!=='-'?`
+      <div class="meta-row">
+        <span class="meta-label">🚗 차체번호</span>
+        <span class="meta-value" style="font-family:monospace">${esc(i.carNumber)}</span>
+      </div>`:''}
+      <div class="meta-row">
+        <span class="meta-label">👤 담당자</span>
+        <span class="meta-value">
+          ${esc(a.name)} ${esc(a.title)} (${esc(a.dept)})
+          ${canChangeAssignee?`<span class="change-link" onclick="window.openAssigneePicker('detail')">변경</span>`:''}
+        </span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">✏️ 등록자</span>
+        <span class="meta-value">${esc(c.name)} ${esc(c.title)}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">🕐 등록일시</span>
+        <span class="meta-value">${fmtDate(i.createdAt)}</span>
+      </div>
     </div>
     <div class="desc-box">
       <div class="section-title">📋 현상 설명</div>
-      <div class="desc-text">${i.description||''}</div>
+      <div class="desc-text">${esc(i.description)}</div>
     </div>
     <div class="comment-box">
       <div class="section-title">💬 조치 이력 (${comments.length}건)</div>
-      ${comments.length===0?'<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:14px">아직 조치 내용이 없습니다</div>':
-        comments.map((cm,idx)=>{
-          const au=gu(cm.author)||{name:'?',title:''};
-          return `<div class="comment-item">
-            <div class="comment-head">
-              <div class="comment-avatar">${au.name[0]}</div>
-              <div><div class="comment-author">${au.name} ${au.title}</div>
-              <div class="comment-time">${fmtDate(cm.createdAt)}</div></div>
-            </div>
-            <div class="comment-text">${cm.text}</div>
-            ${idx<comments.length-1?'<div class="comment-divider"></div>':''}
-          </div>`;
-        }).join('')}
+      ${comments.length===0
+        ? '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:14px">아직 조치 내용이 없습니다</div>'
+        : comments.map((cm, idx) => {
+            const au = gu(cm.author) || {name:'?', title:''};
+            return `<div class="comment-item">
+              <div class="comment-head">
+                <div class="comment-avatar">${esc(au.name[0])}</div>
+                <div>
+                  <div class="comment-author">${esc(au.name)} ${esc(au.title)}</div>
+                  <div class="comment-time">${fmtDate(cm.createdAt)}</div>
+                </div>
+              </div>
+              <div class="comment-text">${esc(cm.text)}</div>
+              ${idx<comments.length-1?'<div class="comment-divider"></div>':''}
+            </div>`;
+          }).join('')}
     </div>
-    ${canAdvance?
-      `<button class="status-action-btn" style="background:${btnColor}" onclick="window.advanceStatus('${i.id}','${nextStatus}')">${btnLabel}</button>`:
-      '<div class="completed-banner">✅ 조치 완료된 이슈입니다</div>'}
+    ${canAdvance
+      ? `<button class="status-action-btn" style="background:${btnColor}" onclick="window.advanceStatus('${i.id}','${nextStatus}')">${btnLabel}</button>`
+      : '<div class="completed-banner">✅ 조치 완료된 이슈입니다</div>'}
+    ${canDelete
+      ? `<button class="delete-issue-btn" onclick="window.deleteIssue('${i.id}')">🗑️ 이슈 삭제</button>`
+      : ''}
     <div style="height:90px"></div>`;
 }
 
 window.advanceStatus = async (id, next) => {
-  if(!confirm(`"${gi(id).status}" → "${next}"로 변경하시겠습니까?`)) return;
+  if (!confirm(`"${gi(id)?.status}" → "${next}"로 변경하시겠습니까?`)) return;
   try {
-    await updateDoc(doc(db,'issues',id),{status:next});
+    await updateDoc(doc(db, 'issues', id), {status: next});
     toast(`✅ 상태가 "${next}"로 변경되었습니다`);
-  } catch(e) { toast('❌ 변경 실패: '+e.message); }
+  } catch(e) { toast('❌ 변경 실패: ' + e.message); }
+};
+
+window.deleteIssue = async id => {
+  const i = gi(id);
+  if (!i) return;
+  if (!confirm(`"${i.title}" 이슈를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+  try {
+    await deleteDoc(doc(db, 'issues', id));
+    toast('🗑️ 이슈가 삭제되었습니다');
+    switchTab('home');
+  } catch(e) { toast('❌ 삭제 실패: ' + e.message); }
 };
 
 window.submitComment = async () => {
-  const text=$('comment-input').value.trim();
-  if(!text) return;
-  const i=gi(currentDetailId);
-  if(!i) return;
-  const newComment={ id:`c${Date.now()}`, author:currentUser.id, text, createdAt:new Date().toISOString() };
-  const updatedComments=[...(i.comments||[]),newComment];
+  const text = $('comment-input').value.trim();
+  if (!text) return;
+  const i = gi(currentDetailId);
+  if (!i) return;
+  const newComment = {id:`c${Date.now()}`, author:currentUser.id, text, createdAt:new Date().toISOString()};
   try {
-    await updateDoc(doc(db,'issues',currentDetailId),{comments:updatedComments});
-    $('comment-input').value='';
-    $('comment-input').style.height='42px';
+    await updateDoc(doc(db, 'issues', currentDetailId), {comments: [...(i.comments||[]), newComment]});
+    $('comment-input').value = '';
+    $('comment-input').style.height = '42px';
     toast('💬 조치 내용이 등록되었습니다');
-  } catch(e) { toast('❌ 등록 실패: '+e.message); }
+  } catch(e) { toast('❌ 등록 실패: ' + e.message); }
 };
 
 window.autoResize = el => {
-  el.style.height='auto';
-  el.style.height=Math.min(el.scrollHeight,90)+'px';
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 90) + 'px';
 };
 
-// ── 이슈 등록 ──
+function resetNewForm() {
+  $('new-title').value = '';
+  $('new-desc').value = '';
+  $('new-carnumber').value = '';
+  newIssueCat = '품질불량'; newIssuePri = '일반'; newIssueCar = ''; newAssigneeId = '';
+}
+
 function renderNewForm() {
-  $('cat-chips').innerHTML=Object.keys(CAT_CONFIG).map(c=>{
-    const cfg=CAT_CONFIG[c];
+  $('cat-chips').innerHTML = Object.keys(CAT_CONFIG).map(c => {
+    const cfg = CAT_CONFIG[c];
     return `<div class="chip ${newIssueCat===c?'active':''}"
       style="${newIssueCat===c?`background:${cfg.color};border-color:${cfg.color}`:''}"
       onclick="window.setCat('${c}')">${cfg.icon} ${c}</div>`;
   }).join('');
-  const priColors={'긴급':'var(--danger)','일반':'var(--warning)','낮음':'var(--secondary)'};
-  $('pri-chips').innerHTML=PRIORITIES.map(p=>
+  const priColors = {'긴급':'var(--danger)','일반':'var(--warning)','낮음':'var(--secondary)'};
+  $('pri-chips').innerHTML = PRIORITIES.map(p =>
     `<div class="chip ${newIssuePri===p?'active':''}"
       style="${newIssuePri===p?`background:${priColors[p]};border-color:${priColors[p]}`:''}"
       onclick="window.setPri('${p}')">${p==='긴급'?'🚨':p==='일반'?'📋':'🔵'} ${p}</div>`
   ).join('');
-  $('car-chips').innerHTML=CAR_MODELS.map(m=>
-    `<div class="car-chip ${newIssueCar===m?'active':''}" onclick="window.setCar('${m}')">${m}</div>`
+  $('car-chips').innerHTML = CAR_MODELS.map(m =>
+    `<div class="car-chip ${newIssueCar===m?'active':''}" onclick="window.setCar('${m}')">${esc(m)}</div>`
   ).join('');
-  const ab=$('assignee-btn');
-  if(newAssigneeId){
-    const a=gu(newAssigneeId);
-    ab.className='assignee-btn selected';
-    ab.innerHTML=`<div class="mini-avatar" style="width:34px;height:34px;font-size:14px">${a.name[0]}</div>
-      <span style="font-size:14px;font-weight:600;color:var(--text)">${a.name} ${a.title} (${a.dept})</span>
+  const ab = $('assignee-btn');
+  if (newAssigneeId) {
+    const a = gu(newAssigneeId);
+    ab.className = 'assignee-btn selected';
+    ab.innerHTML = `<div class="mini-avatar" style="width:34px;height:34px;font-size:14px">${esc(a.name[0])}</div>
+      <span style="font-size:14px;font-weight:600;color:var(--text)">${esc(a.name)} ${esc(a.title)} (${esc(a.dept)})</span>
       <span style="margin-left:auto;font-size:12px;color:var(--secondary);font-weight:600">변경</span>`;
   } else {
-    ab.className='assignee-btn';
-    ab.innerHTML='👤 담당자 선택 →';
+    ab.className = 'assignee-btn';
+    ab.innerHTML = '👤 담당자 선택 →';
   }
 }
 
-window.setCat=c=>{newIssueCat=c;renderNewForm();};
-window.setPri=p=>{newIssuePri=p;renderNewForm();};
-window.setCar=m=>{newIssueCar=newIssueCar===m?'':m;renderNewForm();};
+window.setCat = c => { newIssueCat = c; renderNewForm(); };
+window.setPri = p => { newIssuePri = p; renderNewForm(); };
+window.setCar = m => { newIssueCar = newIssueCar===m ? '' : m; renderNewForm(); };
 
-window.openAssigneePicker=()=>{renderModalUserList();$('assignee-modal').classList.add('open');};
-window.closeAssigneePicker=()=>$('assignee-modal').classList.remove('open');
-function renderModalUserList(){
-  $('modal-dept-tabs').innerHTML=['전체',...DEPTS.slice(1)].map(d=>
-    `<div class="dept-tab ${modalDeptFilter===d?'active':''}" onclick="window.setModalDept('${d}')">${d}</div>`
+window.openAssigneePicker = (context = 'new') => {
+  assigneePickerContext = context;
+  $('assignee-modal-title').textContent = context==='detail' ? '담당자 변경' : '담당자 선택';
+  renderModalUserList();
+  $('assignee-modal').classList.add('open');
+};
+window.closeAssigneePicker = () => $('assignee-modal').classList.remove('open');
+
+function renderModalUserList() {
+  $('modal-dept-tabs').innerHTML = ['전체', ...DEPTS.slice(1)].map(d =>
+    `<div class="dept-tab ${modalDeptFilter===d?'active':''}" onclick="window.setModalDept('${esc(d)}')">${esc(d)}</div>`
   ).join('');
-  const filtered=modalDeptFilter==='전체'?USERS:USERS.filter(u=>u.dept===modalDeptFilter);
-  $('modal-user-list').innerHTML=filtered.map(uu=>`
+  const filtered = modalDeptFilter==='전체' ? USERS : USERS.filter(u => u.dept===modalDeptFilter);
+  const currentSel = assigneePickerContext==='detail' ? gi(currentDetailId)?.assignedTo : newAssigneeId;
+  $('modal-user-list').innerHTML = filtered.map(uu => `
     <div style="display:flex;align-items:center;padding:13px;gap:12px;border-bottom:1px solid var(--border);cursor:pointer"
       onclick="window.selectAssignee('${uu.id}')">
-      <div class="avatar" style="width:38px;height:38px;font-size:14px;${newAssigneeId===uu.id?'background:var(--secondary)':''}">${uu.name[0]}</div>
-      <div><div style="font-size:15px;font-weight:700">${uu.name} ${uu.title}</div>
-      <div style="font-size:12px;color:var(--text-muted)">${uu.dept}</div></div>
-      ${newAssigneeId===uu.id?'<span style="margin-left:auto;color:var(--secondary);font-size:18px">✓</span>':''}
+      <div class="avatar" style="width:38px;height:38px;font-size:14px;${currentSel===uu.id?'background:var(--secondary)':''}">${esc(uu.name[0])}</div>
+      <div>
+        <div style="font-size:15px;font-weight:700">${esc(uu.name)} ${esc(uu.title)}</div>
+        <div style="font-size:12px;color:var(--text-muted)">${esc(uu.dept)}</div>
+      </div>
+      ${currentSel===uu.id?'<span style="margin-left:auto;color:var(--secondary);font-size:18px">✓</span>':''}
     </div>`).join('');
 }
-window.setModalDept=d=>{modalDeptFilter=d;renderModalUserList();};
-window.selectAssignee=id=>{newAssigneeId=id;window.closeAssigneePicker();renderNewForm();};
 
-window.submitNewIssue = async () => {
-  const title=$('new-title').value.trim();
-  const desc=$('new-desc').value.trim();
-  if(!title){toast('❌ 제목을 입력해주세요.');return;}
-  if(!newAssigneeId){toast('❌ 담당자를 선택해주세요.');return;}
-  if(!desc){toast('❌ 현상 설명을 입력해주세요.');return;}
-  try {
-    showLoading('이슈 등록 중...');
-    await addDoc(collection(db,'issues'),{
-      title, category:newIssueCat, status:'접수', priority:newIssuePri,
-      carModel:newIssueCar||'-', carNumber:$('new-carnumber').value.trim()||'-',
-      description:desc, createdBy:currentUser.id, assignedTo:newAssigneeId,
-      createdAt:serverTimestamp(), comments:[]
-    });
-    hideLoading();
-    $('new-title').value=''; $('new-desc').value=''; $('new-carnumber').value='';
-    newIssueCat='품질불량'; newIssuePri='일반'; newIssueCar=''; newAssigneeId='';
-    toast(`✅ 이슈 등록 완료! ${gu(newAssigneeId||'')?.name||'담당자'}에게 알림 발송`);
-    switchTab('home');
-  } catch(e){ hideLoading(); toast('❌ 등록 실패: '+e.message); }
+window.setModalDept = d => { modalDeptFilter = d; renderModalUserList(); };
+
+window.selectAssignee = async id => {
+  window.closeAssigneePicker();
+  if (assigneePickerContext === 'detail') {
+    const assignee = gu(id);
+    if (!currentDetailId || !assignee) return;
+    try {
+      await updateDoc(doc(db, 'issues', currentDetailId), {assignedTo: id});
+      toast(`✅ 담당자가 ${assignee.name} ${assignee.title}(으)로 변경되었습니다`);
+    } catch(e) { toast('❌ 담당자 변경 실패: ' + e.message); }
+  } else {
+    newAssigneeId = id;
+    renderNewForm();
+  }
 };
 
-// ── 관리 ──
-function renderAdmin(){
-  if(!currentUser) return;
-  const depts=['생산1과','생산2과','공정기술과'];
-  let html=`<div class="profile-card">
-    <div class="profile-avatar">${currentUser.name[0]}</div>
-    <div><div class="profile-name">${currentUser.name} ${currentUser.title}</div>
-    <div class="profile-dept">${currentUser.dept}</div></div>
+window.submitNewIssue = async () => {
+  const title = $('new-title').value.trim();
+  const desc  = $('new-desc').value.trim();
+  if (!title)        { toast('❌ 제목을 입력해주세요.'); return; }
+  if (!newAssigneeId){ toast('❌ 담당자를 선택해주세요.'); return; }
+  if (!desc)         { toast('❌ 현상 설명을 입력해주세요.'); return; }
+
+  const btn = $('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '등록 중...';
+  showLoading('이슈 등록 중...');
+
+  try {
+    const assigneeId = newAssigneeId;
+    await addDoc(collection(db, 'issues'), {
+      title, category: newIssueCat, status: '접수', priority: newIssuePri,
+      carModel: newIssueCar || '-', carNumber: $('new-carnumber').value.trim() || '-',
+      description: desc, createdBy: currentUser.id, assignedTo: assigneeId,
+      createdAt: serverTimestamp(), comments: []
+    });
+    hideLoading();
+    const assigneeName = gu(assigneeId)?.name || '담당자';
+    resetNewForm();
+    renderNewForm();
+    toast(`✅ 이슈 등록 완료! ${assigneeName}에게 배정되었습니다`);
+    switchTab('home');
+  } catch(e) {
+    hideLoading();
+    toast('❌ 등록 실패: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 이슈 등록하기';
+  }
+};
+
+function renderAdmin() {
+  if (!currentUser) return;
+  const depts = ['생산1과','생산2과','공정기술과'];
+  let html = `<div class="profile-card">
+    <div class="profile-avatar">${esc(currentUser.name[0])}</div>
+    <div>
+      <div class="profile-name">${esc(currentUser.name)} ${esc(currentUser.title)}</div>
+      <div class="profile-dept">${esc(currentUser.dept)}</div>
+    </div>
     ${currentUser.role==='관리자'?'<div class="admin-crown">👑 관리자</div>':''}
   </div>`;
-  html+=`<div style="padding:0 16px"><div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px">부서별 현황</div>
-  <div class="dept-cards">`;
-  depts.forEach(d=>{
-    const cnt=USERS.filter(u=>u.dept===d).length;
-    const openN=ISSUES.filter(i=>i.status!=='완료'&&USERS.filter(u=>u.dept===d).map(u=>u.id).includes(i.assignedTo)).length;
-    html+=`<div class="dept-stat"><div class="dept-stat-name">${d}</div>
-      <div class="dept-stat-count">${cnt}명</div>
+
+  html += `<div style="padding:0 16px">
+    <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px">부서별 현황</div>
+    <div class="dept-cards">`;
+  depts.forEach(d => {
+    const deptUsers = USERS.filter(u => u.dept === d);
+    const openN = ISSUES.filter(i => i.status!=='완료' && deptUsers.map(u=>u.id).includes(i.assignedTo)).length;
+    html += `<div class="dept-stat">
+      <div class="dept-stat-name">${esc(d)}</div>
+      <div class="dept-stat-count">${deptUsers.length}명</div>
       ${openN>0?`<div class="dept-stat-open">미완료 ${openN}</div>`:''}
     </div>`;
   });
-  html+='</div></div>';
-  depts.forEach(d=>{
-    const members=USERS.filter(u=>u.dept===d);
-    html+=`<div class="section-block"><div class="section-block-header">
-      <span class="section-block-title">${d}</span>
-      <span class="section-block-count">${members.length}명</span></div>`;
-    members.forEach(mem=>{
-      const openN=ISSUES.filter(i=>i.assignedTo===mem.id&&i.status!=='완료').length;
-      html+=`<div class="member-item">
-        <div class="member-avatar ${mem.id===currentUser.id?'me':''}">${mem.name[0]}</div>
+  html += '</div></div>';
+
+  depts.forEach(d => {
+    const members = USERS.filter(u => u.dept === d);
+    html += `<div class="section-block">
+      <div class="section-block-header">
+        <span class="section-block-title">${esc(d)}</span>
+        <span class="section-block-count">${members.length}명</span>
+      </div>`;
+    members.forEach(mem => {
+      const openN = ISSUES.filter(i => i.assignedTo===mem.id && i.status!=='완료').length;
+      html += `<div class="member-item">
+        <div class="member-avatar ${mem.id===currentUser.id?'me':''}">${esc(mem.name[0])}</div>
         <div style="flex:1">
           <div class="member-name-row">
-            <span class="member-name">${mem.name} ${mem.title}</span>
+            <span class="member-name">${esc(mem.name)} ${esc(mem.title)}</span>
             ${mem.role==='관리자'?'<span>👑</span>':''}
             ${mem.id===currentUser.id?'<span class="me-badge">나</span>':''}
           </div>
           ${openN>0?`<div class="member-issues">미완료 이슈 ${openN}건</div>`:''}
         </div>
-        ${currentUser.role==='관리자'&&mem.id!==currentUser.id?
-          `<button class="del-btn" onclick="window.deleteUser('${mem.id}')">삭제</button>`:''}
+        ${currentUser.role==='관리자'&&mem.id!==currentUser.id
+          ?`<button class="del-btn" onclick="window.deleteUser('${mem.id}')">삭제</button>`:''}
       </div>`;
     });
-    html+='</div>';
+    html += '</div>';
   });
-  if(currentUser.role==='관리자'){
-    html+=`<button class="add-btn" onclick="window.openAddUser()">+ 부서원 추가</button>`;
+
+  if (currentUser.role === '관리자') {
+    html += `<button class="add-btn" onclick="window.openAddUser()">+ 부서원 추가</button>`;
   }
-  html+='<div style="height:32px"></div>';
-  $('admin-content').innerHTML=html;
+  html += '<div style="height:32px"></div>';
+  $('admin-content').innerHTML = html;
 }
 
 window.deleteUser = async id => {
-  const mem=gu(id);
-  if(!confirm(`${mem.name} ${mem.title}을(를) 삭제하시겠습니까?`)) return;
+  const mem = gu(id);
+  if (!confirm(`${mem.name} ${mem.title}을(를) 삭제하시겠습니까?`)) return;
   try {
-    await deleteDoc(doc(db,'users',id));
+    await deleteDoc(doc(db, 'users', id));
     await loadUsers();
     renderAdmin();
     toast(`🗑️ ${mem.name} 삭제 완료`);
-  } catch(e){ toast('❌ 삭제 실패: '+e.message); }
+  } catch(e) { toast('❌ 삭제 실패: ' + e.message); }
 };
 
-window.openAddUser=()=>{
-  $('new-user-name').value='';
-  addUserDept='생산1과'; addUserTitle='책임';
+window.openAddUser = () => {
+  $('new-user-name').value = '';
+  addUserDept = '생산1과'; addUserTitle = '책임';
   renderAddUserModal();
   $('add-user-modal').classList.add('open');
 };
-window.closeAddUser=()=>$('add-user-modal').classList.remove('open');
-function renderAddUserModal(){
-  $('new-user-dept-chips').innerHTML=['생산1과','생산2과','공정기술과'].map(d=>
-    `<div class="chip ${addUserDept===d?'active':''}" onclick="window.setAddDept('${d}')">${d}</div>`
+window.closeAddUser = () => $('add-user-modal').classList.remove('open');
+
+function renderAddUserModal() {
+  $('new-user-dept-chips').innerHTML = ['생산1과','생산2과','공정기술과'].map(d =>
+    `<div class="chip ${addUserDept===d?'active':''}" onclick="window.setAddDept('${esc(d)}')">${esc(d)}</div>`
   ).join('');
-  $('new-user-title-chips').innerHTML=['매니저','CM','책임','선임','주임'].map(t=>
-    `<div class="chip ${addUserTitle===t?'active':''}" onclick="window.setAddTitle('${t}')">${t}</div>`
+  $('new-user-title-chips').innerHTML = ['매니저','CM','책임','선임','주임'].map(t =>
+    `<div class="chip ${addUserTitle===t?'active':''}" onclick="window.setAddTitle('${esc(t)}')">${esc(t)}</div>`
   ).join('');
 }
-window.setAddDept=d=>{addUserDept=d;renderAddUserModal();};
-window.setAddTitle=t=>{addUserTitle=t;renderAddUserModal();};
-window.submitAddUser=async()=>{
-  const name=$('new-user-name').value.trim();
-  if(!name){toast('❌ 이름을 입력해주세요.');return;}
-  try{
-    await addDoc(collection(db,'users'),{name,dept:addUserDept,title:addUserTitle,role:'사용자'});
+
+window.setAddDept  = d => { addUserDept  = d; renderAddUserModal(); };
+window.setAddTitle = t => { addUserTitle = t; renderAddUserModal(); };
+
+window.submitAddUser = async () => {
+  const name = $('new-user-name').value.trim();
+  if (!name) { toast('❌ 이름을 입력해주세요.'); return; }
+  try {
+    await addDoc(collection(db, 'users'), {name, dept:addUserDept, title:addUserTitle, role:'사용자'});
     await loadUsers();
     window.closeAddUser();
     renderAdmin();
     renderLoginUsers();
     toast(`✅ ${name} ${addUserTitle} 추가 완료`);
-  }catch(e){toast('❌ 추가 실패: '+e.message);}
+  } catch(e) { toast('❌ 추가 실패: ' + e.message); }
 };
 
-// ── 타임아웃 래퍼 (15초) ──
 function withTimeout(promise, ms=15000, label='작업') {
   return Promise.race([
     promise,
-    new Promise((_,rej) => setTimeout(()=>rej(new Error(`${label} 시간 초과 (${ms/1000}초)\n→ Firestore DB가 생성되어 있는지 확인해주세요`)), ms))
+    new Promise((_, rej) => setTimeout(() =>
+      rej(new Error(`${label} 시간 초과 (${ms/1000}초)\n→ Firestore DB가 생성되어 있는지 확인해주세요`)), ms))
   ]);
 }
 
-// ── 앱 시작 ──
 async function startApp() {
   showLoading('Firebase 연결 중...');
   try {
     $('loading-text').textContent = '부서원 데이터 확인 중...';
-    const snap = await withTimeout(getDocs(collection(db,'users')), 15000, 'Firestore 연결');
+    const snap = await withTimeout(getDocs(collection(db, 'users')), 15000, 'Firestore 연결');
 
-    if(snap.empty) {
-      $('loading-text').textContent = '초기 데이터 생성 중... (1/12)';
-      // 병렬로 한꺼번에 생성 (순차→병렬 개선)
+    if (snap.empty) {
+      $('loading-text').textContent = '초기 데이터 생성 중...';
       await withTimeout(
-        Promise.all(SEED_USERS.map((u,i) => addDoc(collection(db,'users'), u))),
+        Promise.all(SEED_USERS.map(u => addDoc(collection(db, 'users'), u))),
         20000, '초기 데이터 생성'
       );
     }
@@ -1018,15 +1116,15 @@ async function startApp() {
     $('loading-text').textContent = '데이터 로드 중...';
     await loadUsers();
 
-    // 이전 로그인 복원
     const savedId = localStorage.getItem('c3_userId');
-    if(savedId) {
-      const found = USERS.find(u=>u.id===savedId);
-      if(found){ currentUser=found; }
+    if (savedId) {
+      const found = USERS.find(u => u.id === savedId);
+      if (found) currentUser = found;
     }
+
     hideLoading();
-    if(currentUser){
-      $('tabbar').style.display='flex';
+    if (currentUser) {
+      $('tabbar').style.display = 'flex';
       switchTab('home');
     } else {
       showScreen('login');
@@ -1034,11 +1132,10 @@ async function startApp() {
     }
   } catch(e) {
     console.error(e);
-    // 오류 화면으로 전환
-    $('loading-spinner').style.display='none';
+    $('loading-spinner').style.display = 'none';
     $('loading-text').textContent = '❌ 연결 실패';
-    $('retry-btn').style.display='block';
-    $('error-detail').style.display='block';
+    $('retry-btn').style.display = 'block';
+    $('error-detail').style.display = 'block';
     $('error-detail').textContent = e.message;
   }
 }
